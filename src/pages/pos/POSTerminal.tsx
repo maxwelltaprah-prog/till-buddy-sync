@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/hooks/useCurrency';
+import { useShopSettings } from '@/contexts/ShopSettingsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,9 +33,11 @@ import {
   Calculator,
   Printer,
   Receipt,
+  Barcode,
 } from 'lucide-react';
 import type { Product, CartItem, BulkPricingTier } from '@/types/database';
-import { generateReceiptPDF, printThermalReceipt, type ReceiptData } from '@/lib/receiptGenerator';
+import { generateReceiptPDF, printThermalReceipt, type ReceiptData, type ShopBranding } from '@/lib/receiptGenerator';
+import { BarcodeScanner, useBarcodeKeyboardScanner } from '@/components/pos/BarcodeScanner';
 
 interface ProductWithInventory extends Product {
   branch_inventory: { quantity: number }[];
@@ -43,6 +46,7 @@ interface ProductWithInventory extends Product {
 export default function POSTerminal() {
   const { user, branch } = useAuth();
   const { formatPrice, symbol } = useCurrency();
+  const { settings: shopSettings } = useShopSettings();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // State
@@ -59,6 +63,7 @@ export default function POSTerminal() {
   const [useBulkPricing, setUseBulkPricing] = useState(false);
   const [lastSaleData, setLastSaleData] = useState<ReceiptData | null>(null);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
 
   // Calculated values
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
@@ -68,6 +73,23 @@ export default function POSTerminal() {
   );
   const total = subtotal + taxAmount;
   const changeAmount = Math.max(0, parseFloat(cashReceived || '0') - total);
+
+  // Handle barcode scan
+  const handleBarcodeScanned = useCallback((barcode: string) => {
+    const product = products.find(
+      (p) => p.barcode?.toLowerCase() === barcode.toLowerCase() || p.sku.toLowerCase() === barcode.toLowerCase()
+    );
+    
+    if (product) {
+      quickAddToCart(product);
+      toast.success(`Added ${product.name} to cart`);
+    } else {
+      toast.error(`Product not found: ${barcode}`);
+    }
+  }, [products]);
+
+  // Use keyboard barcode scanner hook
+  useBarcodeKeyboardScanner(handleBarcodeScanned);
 
   // Fetch products
   useEffect(() => {
@@ -372,7 +394,17 @@ export default function POSTerminal() {
         });
       }
 
-      // Prepare receipt data
+      // Prepare receipt data with shop branding
+      const branding: ShopBranding = {
+        shopName: shopSettings.shop_name,
+        tagline: shopSettings.tagline,
+        logoUrl: shopSettings.logo_url,
+        receiptHeader: shopSettings.receipt_header,
+        receiptFooter: shopSettings.receipt_footer,
+        currencySymbol: shopSettings.currency_symbol,
+        primaryColor: shopSettings.primary_color,
+      };
+
       const receiptDataForPrint: ReceiptData = {
         receiptNumber: receiptData,
         date: new Date(),
@@ -391,6 +423,7 @@ export default function POSTerminal() {
         total,
         cashReceived: received,
         change: changeAmount,
+        branding,
       };
 
       setLastSaleData(receiptDataForPrint);
@@ -436,25 +469,36 @@ export default function POSTerminal() {
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
         {/* Search bar */}
         <div className="mb-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
-            <Input
-              ref={searchInputRef}
-              placeholder="Search by name, SKU, or barcode..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-transparent bg-card shadow-sm focus:border-primary focus:shadow-md transition-all duration-300"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => setSearchQuery('')}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+          <div className="flex gap-2">
+            <div className="relative group flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
+              <Input
+                ref={searchInputRef}
+                placeholder="Search by name, SKU, or barcode..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-transparent bg-card shadow-sm focus:border-primary focus:shadow-md transition-all duration-300"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setSearchQuery('')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-14 px-6 rounded-xl"
+              onClick={() => setShowBarcodeScanner(true)}
+            >
+              <Barcode className="h-5 w-5 mr-2" />
+              Scan
+            </Button>
           </div>
         </div>
 
@@ -873,6 +917,16 @@ export default function POSTerminal() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        onBarcodeScanned={(barcode) => {
+          handleBarcodeScanned(barcode);
+          setShowBarcodeScanner(false);
+        }}
+      />
     </div>
   );
 }

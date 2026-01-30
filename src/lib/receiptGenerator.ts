@@ -1,5 +1,15 @@
 // Receipt generation utilities for thermal and PDF printing
 
+export interface ShopBranding {
+  shopName: string;
+  tagline?: string;
+  logoUrl?: string;
+  receiptHeader: string;
+  receiptFooter: string;
+  currencySymbol: string;
+  primaryColor?: string;
+}
+
 export interface ReceiptData {
   receiptNumber: string;
   date: Date;
@@ -18,6 +28,7 @@ export interface ReceiptData {
   total: number;
   cashReceived: number;
   change: number;
+  branding?: ShopBranding;
 }
 
 // Format date for receipt
@@ -31,8 +42,18 @@ const formatDate = (date: Date): string => {
   });
 };
 
+// Format price with currency symbol
+const formatPrice = (amount: number, symbol: string = '$'): string => {
+  return `${symbol}${amount.toFixed(2)}`;
+};
+
 // Generate thermal printer receipt (ESC/POS format)
 export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
+  const symbol = data.branding?.currencySymbol || '$';
+  const shopName = data.branding?.shopName || 'SUPERPOS';
+  const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
+  const footerMsg = data.branding?.receiptFooter || 'Please come again';
+  
   // Build receipt text
   const lines: string[] = [];
   const width = 42; // Standard thermal receipt width
@@ -46,11 +67,16 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   const thinSeparator = '-'.repeat(width);
   
   // Header
-  lines.push(center('SUPERPOS'));
+  lines.push(center(shopName.toUpperCase()));
+  if (data.branding?.tagline) {
+    lines.push(center(data.branding.tagline));
+  }
   lines.push(center(data.branchName));
   if (data.branchAddress) {
     lines.push(center(data.branchAddress));
   }
+  lines.push(separator);
+  lines.push(center(headerMsg));
   lines.push(separator);
   lines.push(`Receipt: ${data.receiptNumber}`);
   lines.push(`Date: ${formatDate(data.date)}`);
@@ -64,26 +90,25 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   data.items.forEach(item => {
     const name = item.name.substring(0, 22).padEnd(22);
     const qty = item.quantity.toString().padStart(3);
-    const total = `$${item.total.toFixed(2)}`.padStart(10);
+    const total = formatPrice(item.total, symbol).padStart(10);
     lines.push(`${name} ${qty} ${total}`);
     if (item.isBulk) {
-      lines.push(`  @ $${item.unitPrice.toFixed(2)} (BULK)`);
+      lines.push(`  @ ${formatPrice(item.unitPrice, symbol)} (BULK)`);
     }
   });
   
   lines.push(thinSeparator);
   
   // Totals
-  lines.push(`${'Subtotal:'.padEnd(30)}$${data.subtotal.toFixed(2).padStart(10)}`);
-  lines.push(`${'Tax:'.padEnd(30)}$${data.taxAmount.toFixed(2).padStart(10)}`);
+  lines.push(`${'Subtotal:'.padEnd(30)}${formatPrice(data.subtotal, symbol).padStart(10)}`);
+  lines.push(`${'Tax:'.padEnd(30)}${formatPrice(data.taxAmount, symbol).padStart(10)}`);
   lines.push(separator);
-  lines.push(`${'TOTAL:'.padEnd(30)}$${data.total.toFixed(2).padStart(10)}`);
-  lines.push(`${'Cash:'.padEnd(30)}$${data.cashReceived.toFixed(2).padStart(10)}`);
-  lines.push(`${'Change:'.padEnd(30)}$${data.change.toFixed(2).padStart(10)}`);
+  lines.push(`${'TOTAL:'.padEnd(30)}${formatPrice(data.total, symbol).padStart(10)}`);
+  lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
+  lines.push(`${'Change:'.padEnd(30)}${formatPrice(data.change, symbol).padStart(10)}`);
   
   lines.push(separator);
-  lines.push(center('Thank you for your purchase!'));
-  lines.push(center('Please come again'));
+  lines.push(center(footerMsg));
   lines.push('');
   lines.push('');
   lines.push('');
@@ -163,6 +188,14 @@ const printViaWindow = (text: string) => {
 
 // Generate PDF receipt
 export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
+  const symbol = data.branding?.currencySymbol || '$';
+  const shopName = data.branding?.shopName || 'SUPERPOS';
+  const tagline = data.branding?.tagline || '';
+  const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
+  const footerMsg = data.branding?.receiptFooter || 'Please come again';
+  const primaryColor = data.branding?.primaryColor || '#7c3aed';
+  const logoUrl = data.branding?.logoUrl;
+
   // Create a simple HTML-based PDF using browser print
   const htmlContent = `
     <!DOCTYPE html>
@@ -182,15 +215,33 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
           text-align: center;
           margin-bottom: 15px;
           padding-bottom: 10px;
-          border-bottom: 2px solid #000;
+          border-bottom: 2px solid ${primaryColor};
+        }
+        .logo {
+          max-width: 80px;
+          max-height: 60px;
+          margin-bottom: 8px;
         }
         .header h1 {
           font-size: 18px;
+          margin-bottom: 3px;
+          color: ${primaryColor};
+        }
+        .header .tagline {
+          font-size: 10px;
+          color: #666;
           margin-bottom: 5px;
         }
         .header p {
           font-size: 11px;
           color: #666;
+        }
+        .header-message {
+          font-style: italic;
+          color: #333;
+          margin-top: 8px;
+          padding-top: 8px;
+          border-top: 1px dashed #ccc;
         }
         .info {
           margin-bottom: 15px;
@@ -219,11 +270,11 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
         }
         .items .bulk {
           font-size: 10px;
-          color: #666;
+          color: ${primaryColor};
           font-style: italic;
         }
         .totals {
-          border-top: 2px solid #000;
+          border-top: 2px solid ${primaryColor};
           padding-top: 10px;
         }
         .totals div {
@@ -237,6 +288,7 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
           border-top: 1px solid #000;
           padding-top: 5px;
           margin-top: 5px;
+          color: ${primaryColor};
         }
         .footer {
           text-align: center;
@@ -252,9 +304,12 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
     </head>
     <body>
       <div class="header">
-        <h1>SUPERPOS</h1>
+        ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="logo" />` : ''}
+        <h1>${shopName}</h1>
+        ${tagline ? `<p class="tagline">${tagline}</p>` : ''}
         <p>${data.branchName}</p>
         ${data.branchAddress ? `<p>${data.branchAddress}</p>` : ''}
+        <p class="header-message">${headerMsg}</p>
       </div>
       
       <div class="info">
@@ -277,10 +332,10 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
               <tr>
                 <td>
                   ${item.name}
-                  ${item.isBulk ? `<div class="bulk">@ $${item.unitPrice.toFixed(2)} (Bulk)</div>` : ''}
+                  ${item.isBulk ? `<div class="bulk">@ ${formatPrice(item.unitPrice, symbol)} (Bulk)</div>` : ''}
                 </td>
                 <td>${item.quantity}</td>
-                <td>$${item.total.toFixed(2)}</td>
+                <td>${formatPrice(item.total, symbol)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -288,16 +343,15 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
       </div>
       
       <div class="totals">
-        <div><span>Subtotal:</span><span>$${data.subtotal.toFixed(2)}</span></div>
-        <div><span>Tax:</span><span>$${data.taxAmount.toFixed(2)}</span></div>
-        <div class="grand-total"><span>TOTAL:</span><span>$${data.total.toFixed(2)}</span></div>
-        <div><span>Cash:</span><span>$${data.cashReceived.toFixed(2)}</span></div>
-        <div><span>Change:</span><span>$${data.change.toFixed(2)}</span></div>
+        <div><span>Subtotal:</span><span>${formatPrice(data.subtotal, symbol)}</span></div>
+        <div><span>Tax:</span><span>${formatPrice(data.taxAmount, symbol)}</span></div>
+        <div class="grand-total"><span>TOTAL:</span><span>${formatPrice(data.total, symbol)}</span></div>
+        <div><span>Cash:</span><span>${formatPrice(data.cashReceived, symbol)}</span></div>
+        <div><span>Change:</span><span>${formatPrice(data.change, symbol)}</span></div>
       </div>
       
       <div class="footer">
-        <p>Thank you for your purchase!</p>
-        <p>Please come again</p>
+        <p>${footerMsg}</p>
       </div>
     </body>
     </html>
