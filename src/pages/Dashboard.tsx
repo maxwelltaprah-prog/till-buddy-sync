@@ -117,10 +117,10 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/30 min-h-full">
       {/* Welcome section */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}
         </h1>
         <p className="text-muted-foreground">
@@ -132,16 +132,18 @@ export default function Dashboard() {
       {/* Quick actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {(isAdmin || isCashier) && (
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group border-2 border-transparent hover:border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">POS Terminal</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <ShoppingCart className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">
                 Start processing sales
               </p>
-              <Button asChild size="sm" className="w-full">
+              <Button asChild size="sm" className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/20">
                 <Link to="/pos">
                   Open POS
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -152,16 +154,18 @@ export default function Dashboard() {
         )}
 
         {(isAdmin || isStockManager) && (
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-xl hover:shadow-accent/10 transition-all duration-300 group border-2 border-transparent hover:border-accent/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-accent/10 group-hover:bg-accent/20 transition-colors">
+                <Package className="h-4 w-4 text-accent" />
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">
                 Manage product catalog
               </p>
-              <Button asChild size="sm" variant="outline" className="w-full">
+              <Button asChild size="sm" variant="outline" className="w-full border-accent/30 hover:bg-accent/10 hover:text-accent hover:border-accent">
                 <Link to="/products">
                   View Products
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -172,16 +176,18 @@ export default function Dashboard() {
         )}
 
         {(isAdmin || isStockManager) && (
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-xl hover:shadow-success/10 transition-all duration-300 group border-2 border-transparent hover:border-success/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Inventory</CardTitle>
-              <Boxes className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
+                <Boxes className="h-4 w-4 text-success" />
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">
                 Check stock levels
               </p>
-              <Button asChild size="sm" variant="outline" className="w-full">
+              <Button asChild size="sm" variant="outline" className="w-full border-success/30 hover:bg-success/10 hover:text-success hover:border-success">
                 <Link to="/inventory">
                   View Inventory
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -192,16 +198,18 @@ export default function Dashboard() {
         )}
 
         {isAdmin && (
-          <Card className="hover:shadow-md transition-shadow">
+          <Card className="hover:shadow-xl hover:shadow-warning/10 transition-all duration-300 group border-2 border-transparent hover:border-warning/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-lg bg-warning/10 group-hover:bg-warning/20 transition-colors">
+                <Users className="h-4 w-4 text-warning" />
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-muted-foreground mb-4">
                 Manage staff accounts
               </p>
-              <Button asChild size="sm" variant="outline" className="w-full">
+              <Button asChild size="sm" variant="outline" className="w-full border-warning/30 hover:bg-warning/10 hover:text-warning hover:border-warning">
                 <Link to="/users">
                   Manage Users
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -215,17 +223,19 @@ export default function Dashboard() {
       {/* Stats overview */}
       {isAdmin && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-              <DollarSign className="h-4 w-4 text-success" />
+              <div className="p-2 rounded-full bg-success/20">
+                <DollarSign className="h-4 w-4 text-success" />
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin text-success" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold">${stats.todaySales.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-success">${stats.todaySales.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
                     {stats.todayTransactions} transactions
                   </p>
@@ -234,17 +244,19 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-full bg-primary/20">
+                <Package className="h-4 w-4 text-primary" />
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{stats.totalProducts}</div>
+                  <div className="text-3xl font-bold text-primary">{stats.totalProducts}</div>
                   <p className="text-xs text-muted-foreground">
                     Active products
                   </p>
@@ -253,17 +265,19 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={`bg-gradient-to-br ${stats.lowStockItems > 0 ? 'from-destructive/10 to-destructive/5 border-destructive/20' : 'from-accent/10 to-accent/5 border-accent/20'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <Boxes className="h-4 w-4 text-muted-foreground" />
+              <div className={`p-2 rounded-full ${stats.lowStockItems > 0 ? 'bg-destructive/20' : 'bg-accent/20'}`}>
+                <Boxes className={`h-4 w-4 ${stats.lowStockItems > 0 ? 'text-destructive' : 'text-accent'}`} />
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
                 <>
-                  <div className={`text-2xl font-bold ${stats.lowStockItems > 0 ? 'text-destructive' : ''}`}>
+                  <div className={`text-3xl font-bold ${stats.lowStockItems > 0 ? 'text-destructive' : 'text-accent'}`}>
                     {stats.lowStockItems}
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -274,13 +288,15 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Growth</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div className="p-2 rounded-full bg-warning/20">
+                <TrendingUp className="h-4 w-4 text-warning" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">—</div>
+              <div className="text-3xl font-bold text-warning">—</div>
               <p className="text-xs text-muted-foreground">
                 vs. last week
               </p>
@@ -291,16 +307,18 @@ export default function Dashboard() {
 
       {/* Low stock alert */}
       {isAdmin && !isLoading && stats.lowStockItems > 0 && (
-        <Card className="border-warning/50 bg-warning/5">
+        <Card className="border-2 border-warning/30 bg-gradient-to-r from-warning/10 via-warning/5 to-transparent animate-pulse-soft">
           <CardContent className="flex items-center gap-4 py-4">
-            <AlertTriangle className="h-8 w-8 text-warning" />
+            <div className="p-3 rounded-full bg-warning/20">
+              <AlertTriangle className="h-6 w-6 text-warning" />
+            </div>
             <div className="flex-1">
-              <p className="font-medium">Low Stock Alert</p>
+              <p className="font-semibold text-warning">Low Stock Alert</p>
               <p className="text-sm text-muted-foreground">
                 {stats.lowStockItems} products are below minimum stock level
               </p>
             </div>
-            <Button asChild variant="outline">
+            <Button asChild className="bg-warning text-warning-foreground hover:bg-warning/90">
               <Link to="/inventory">View Inventory</Link>
             </Button>
           </CardContent>
@@ -308,9 +326,14 @@ export default function Dashboard() {
       )}
 
       {/* Recent activity */}
-      <Card>
+      <Card className="border-2 border-transparent hover:border-primary/10 transition-all duration-300">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            Recent Activity
+          </CardTitle>
           <CardDescription>
             Your recent transactions and actions
           </CardDescription>
@@ -318,32 +341,34 @@ export default function Dashboard() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : recentSales.length > 0 ? (
             <div className="space-y-3">
               {recentSales.map((sale, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted"
+                  className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 hover:from-primary/10 hover:to-accent/5 transition-all duration-300 group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <ShoppingCart className="h-4 w-4 text-primary" />
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                      <ShoppingCart className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{sale.receipt}</p>
+                      <p className="text-sm font-semibold">{sale.receipt}</p>
                       <p className="text-xs text-muted-foreground">{sale.time}</p>
                     </div>
                   </div>
-                  <span className="font-mono font-medium">${sale.total.toFixed(2)}</span>
+                  <span className="font-mono font-bold text-lg text-success">${sale.total.toFixed(2)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <BarChart3 className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No recent activity</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="p-4 rounded-full bg-muted mb-4">
+                <BarChart3 className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground font-medium">No recent activity</p>
               <p className="text-sm text-muted-foreground/70">
                 Start by adding products and making your first sale
               </p>

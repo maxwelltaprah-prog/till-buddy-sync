@@ -421,25 +421,25 @@ export default function POSTerminal() {
   const quickCashAmounts = [10, 20, 50, 100, 200, 500];
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex">
+    <div className="h-[calc(100vh-3.5rem)] flex bg-gradient-to-br from-background via-background to-muted/30">
       {/* Products panel */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
         {/* Search bar */}
         <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
               ref={searchInputRef}
               placeholder="Search by name, SKU, or barcode..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-lg"
+              className="pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-transparent bg-card shadow-sm focus:border-primary focus:shadow-md transition-all duration-300"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => setSearchQuery('')}
               >
                 <X className="h-4 w-4" />
@@ -462,7 +462,7 @@ export default function POSTerminal() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {filteredProducts.map((product) => {
                 const stock = product.branch_inventory?.[0]?.quantity || 0;
                 const inCart = cart.find((item) => item.product.id === product.id);
@@ -471,10 +471,10 @@ export default function POSTerminal() {
                 return (
                   <div
                     key={product.id}
-                    className="p-4 rounded-lg border bg-card text-left hover:shadow-md transition-all relative group"
+                    className="p-4 rounded-xl border-2 border-transparent bg-card text-left hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 relative group"
                   >
                     {inCart && (
-                      <Badge className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                      <Badge className="absolute -top-2 -right-2 h-7 w-7 flex items-center justify-center p-0 rounded-full bg-primary shadow-lg animate-scale-in">
                         {inCart.quantity}
                       </Badge>
                     )}
@@ -483,23 +483,23 @@ export default function POSTerminal() {
                       disabled={stock <= 0}
                       className="w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <div className="aspect-square bg-muted rounded-md mb-2 flex items-center justify-center">
+                      <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                         {product.image_url ? (
                           <img
                             src={product.image_url}
                             alt={product.name}
-                            className="w-full h-full object-cover rounded-md"
+                            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
-                          <Package className="h-8 w-8 text-muted-foreground" />
+                          <Package className="h-10 w-10 text-muted-foreground/50" />
                         )}
                       </div>
-                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <p className="font-semibold text-sm truncate">{product.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="font-bold">${product.retail_price.toFixed(2)}</span>
-                        <span className={`text-xs ${stock <= product.min_stock_level ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          {stock} in stock
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="font-bold text-lg text-primary">${product.retail_price.toFixed(2)}</span>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${stock <= product.min_stock_level ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
+                          {stock}
                         </span>
                       </div>
                     </button>
@@ -507,7 +507,7 @@ export default function POSTerminal() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="w-full mt-2 text-xs"
+                        className="w-full mt-3 text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 border-0"
                         onClick={() => openAddToCartDialog(product)}
                         disabled={stock <= 0}
                       >
@@ -523,18 +523,20 @@ export default function POSTerminal() {
       </div>
 
       {/* Cart panel */}
-      <div className="w-96 border-l bg-card flex flex-col">
-        <div className="p-4 border-b">
+      <div className="w-96 border-l bg-gradient-to-b from-card to-card/95 flex flex-col shadow-xl">
+        <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-accent/5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+              </div>
               Cart
               {cart.length > 0 && (
-                <Badge variant="secondary">{cart.length}</Badge>
+                <Badge className="bg-primary text-primary-foreground">{cart.length}</Badge>
               )}
             </h2>
             {cart.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearCart}>
+              <Button variant="ghost" size="sm" onClick={clearCart} className="text-muted-foreground hover:text-destructive">
                 Clear
               </Button>
             )}
