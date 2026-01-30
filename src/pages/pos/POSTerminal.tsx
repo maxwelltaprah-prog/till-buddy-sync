@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +42,7 @@ interface ProductWithInventory extends Product {
 
 export default function POSTerminal() {
   const { user, branch } = useAuth();
+  const { formatPrice, symbol } = useCurrency();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // State
@@ -505,7 +507,7 @@ export default function POSTerminal() {
                       <p className="font-semibold text-sm truncate">{product.name}</p>
                       <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
                       <div className="flex items-center justify-between mt-3">
-                        <span className="font-bold text-lg text-primary">${product.retail_price.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-primary">{formatPrice(product.retail_price)}</span>
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${stock <= product.min_stock_level ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
                           {stock}
                         </span>
@@ -519,7 +521,7 @@ export default function POSTerminal() {
                         onClick={() => openAddToCartDialog(product)}
                         disabled={stock <= 0}
                       >
-                        Bulk: ${bulkInfo.price.toFixed(2)} (≥{bulkInfo.minQty})
+                        Bulk: {formatPrice(bulkInfo.price)} (≥{bulkInfo.minQty})
                       </Button>
                     )}
                   </div>
@@ -571,7 +573,7 @@ export default function POSTerminal() {
                     <p className="font-medium text-sm truncate">{item.product.name}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm text-muted-foreground">
-                        ${item.unit_price.toFixed(2)}
+                        {formatPrice(item.unit_price)}
                       </span>
                       {item.is_bulk_price ? (
                         <Badge 
@@ -591,7 +593,7 @@ export default function POSTerminal() {
                         </Badge>
                       ) : null}
                     </div>
-                    <p className="font-semibold mt-1">${item.total.toFixed(2)}</p>
+                    <p className="font-semibold mt-1">{formatPrice(item.total)}</p>
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
@@ -636,16 +638,16 @@ export default function POSTerminal() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatPrice(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Tax</span>
-              <span>${taxAmount.toFixed(2)}</span>
+              <span>{formatPrice(taxAmount)}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>{formatPrice(total)}</span>
             </div>
           </div>
 
@@ -656,7 +658,7 @@ export default function POSTerminal() {
             onClick={() => setShowPaymentDialog(true)}
           >
             <DollarSign className="mr-2 h-5 w-5" />
-            Pay ${total.toFixed(2)}
+            Pay {formatPrice(total)}
           </Button>
         </div>
       </div>
@@ -704,7 +706,7 @@ export default function POSTerminal() {
                 <div>
                   <Label>Use Bulk Pricing</Label>
                   <p className="text-sm text-muted-foreground">
-                    ${getBulkPriceInfo(selectedProduct)?.price.toFixed(2)}/unit
+                    {formatPrice(getBulkPriceInfo(selectedProduct)?.price || 0)}/unit
                   </p>
                 </div>
                 <Switch
@@ -718,19 +720,19 @@ export default function POSTerminal() {
               <div className="flex justify-between text-sm">
                 <span>Unit Price:</span>
                 <span className="font-medium">
-                  ${(useBulkPricing && selectedProduct
+                  {formatPrice(useBulkPricing && selectedProduct
                     ? getEffectivePrice(selectedProduct, addQuantity, true).price
                     : selectedProduct?.retail_price || 0
-                  ).toFixed(2)}
+                  )}
                 </span>
               </div>
               <div className="flex justify-between font-bold mt-2">
                 <span>Total:</span>
                 <span>
-                  ${((useBulkPricing && selectedProduct
+                  {formatPrice((useBulkPricing && selectedProduct
                     ? getEffectivePrice(selectedProduct, addQuantity, true).price
                     : selectedProduct?.retail_price || 0
-                  ) * addQuantity).toFixed(2)}
+                  ) * addQuantity)}
                 </span>
               </div>
             </div>
@@ -756,7 +758,7 @@ export default function POSTerminal() {
               Cash Payment
             </DialogTitle>
             <DialogDescription>
-              Total amount: <span className="font-bold text-foreground">${total.toFixed(2)}</span>
+              Total amount: <span className="font-bold text-foreground">{formatPrice(total)}</span>
             </DialogDescription>
           </DialogHeader>
 
@@ -782,7 +784,7 @@ export default function POSTerminal() {
                   variant="outline"
                   onClick={() => setCashReceived(amount.toString())}
                 >
-                  ${amount}
+                  {symbol}{amount}
                 </Button>
               ))}
             </div>
@@ -792,13 +794,13 @@ export default function POSTerminal() {
               className="w-full"
               onClick={() => setCashReceived(total.toFixed(2))}
             >
-              Exact Amount (${total.toFixed(2)})
+              Exact Amount ({formatPrice(total)})
             </Button>
 
             {parseFloat(cashReceived || '0') >= total && (
               <div className="p-4 rounded-lg bg-success/10 text-center">
                 <p className="text-sm text-muted-foreground">Change to give</p>
-                <p className="text-3xl font-bold text-success">${changeAmount.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-success">{formatPrice(changeAmount)}</p>
               </div>
             )}
           </div>
@@ -840,9 +842,9 @@ export default function POSTerminal() {
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-muted text-center">
               <p className="text-2xl font-bold text-success">Sale Complete!</p>
-              <p className="text-muted-foreground">Total: ${lastSaleData?.total.toFixed(2)}</p>
+              <p className="text-muted-foreground">Total: {formatPrice(lastSaleData?.total || 0)}</p>
               {lastSaleData && lastSaleData.change > 0 && (
-                <p className="text-muted-foreground">Change: ${lastSaleData.change.toFixed(2)}</p>
+                <p className="text-muted-foreground">Change: {formatPrice(lastSaleData.change)}</p>
               )}
             </div>
 
