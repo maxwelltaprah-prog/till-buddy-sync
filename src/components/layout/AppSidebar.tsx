@@ -1,5 +1,6 @@
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useShopSettings } from '@/contexts/ShopSettingsContext';
 import {
   Sidebar,
   SidebarContent,
@@ -139,6 +140,7 @@ const adminNavItems: NavItem[] = [
 export function AppSidebar() {
   const location = useLocation();
   const { profile, roles, signOut } = useAuth();
+  const { settings: shopSettings } = useShopSettings();
 
   const filterByRole = (items: NavItem[]) => {
     return items.filter(
@@ -187,12 +189,20 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-4">
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Store className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
+          {shopSettings.logo_url ? (
+            <img
+              src={shopSettings.logo_url}
+              alt={shopSettings.shop_name}
+              className="h-9 w-9 object-contain rounded-lg"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
+              <Store className="h-5 w-5 text-sidebar-primary-foreground" />
+            </div>
+          )}
           <div className="flex flex-col">
-            <span className="font-semibold text-sidebar-foreground">SuperPOS</span>
-            <span className="text-xs text-sidebar-foreground/60">Enterprise</span>
+            <span className="font-semibold text-sidebar-foreground">{shopSettings.shop_name}</span>
+            <span className="text-xs text-sidebar-foreground/60">{shopSettings.tagline}</span>
           </div>
         </Link>
       </SidebarHeader>
