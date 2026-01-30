@@ -19,7 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -43,24 +42,26 @@ import {
   Users as UsersIcon,
   Search,
   MoreHorizontal,
-  Pencil,
   Shield,
-  Trash2,
+  UserPlus,
 } from 'lucide-react';
 import type { Profile, UserRole, AppRole, Branch } from '@/types/database';
 import { ROLE_LABELS } from '@/types/database';
+import { AddUserDialog } from '@/components/admin/AddUserDialog';
 
 interface UserWithRoles extends Profile {
   user_roles: UserRole[];
 }
 
 export default function Users() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showRoleDialog, setShowRoleDialog] = useState(false);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>('cashier');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -203,6 +204,12 @@ export default function Users() {
           <h1 className="text-3xl font-bold">Users</h1>
           <p className="text-muted-foreground">Manage user accounts and roles</p>
         </div>
+        {isAdmin && (
+          <Button onClick={() => setShowAddUserDialog(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -370,6 +377,14 @@ export default function Users() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add User Dialog */}
+      <AddUserDialog
+        open={showAddUserDialog}
+        onOpenChange={setShowAddUserDialog}
+        branches={branches}
+        onUserAdded={fetchData}
+      />
     </div>
   );
 }
