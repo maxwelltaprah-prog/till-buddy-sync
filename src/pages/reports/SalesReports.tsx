@@ -100,14 +100,18 @@ export default function SalesReports() {
 
   const handleCustomStartDate = (date: Date | undefined) => {
     if (date) {
-      setStartDate(startOfDay(date));
+      const newStart = startOfDay(date);
+      setStartDate(newStart);
+      setDateRange('custom');
       setCustomStartOpen(false);
     }
   };
 
   const handleCustomEndDate = (date: Date | undefined) => {
     if (date) {
-      setEndDate(endOfDay(date));
+      const newEnd = endOfDay(date);
+      setEndDate(newEnd);
+      setDateRange('custom');
       setCustomEndOpen(false);
     }
   };
