@@ -286,33 +286,27 @@ export default function POSTerminal() {
 
     setIsProcessing(true);
     try {
-      // Generate receipt number
-      const { data: receiptData, error: receiptError } = await supabase.rpc(
-        'generate_receipt_number',
-        { branch_code: branch.code }
+      // Create sale with atomic receipt number generation
+      const { data: saleResult, error: saleError } = await supabase.rpc(
+        'create_sale_with_receipt',
+        {
+          p_branch_id: branch.id,
+          p_branch_code: branch.code,
+          p_cashier_id: user!.id,
+          p_subtotal: subtotal,
+          p_discount_amount: 0,
+          p_tax_amount: taxAmount,
+          p_total: total,
+          p_cash_received: received,
+          p_change_given: changeAmount,
+        }
       );
 
-      if (receiptError) throw receiptError;
-
-      // Create sale record
-      const { data: sale, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          receipt_number: receiptData,
-          branch_id: branch.id,
-          cashier_id: user!.id,
-          subtotal,
-          discount_amount: 0,
-          tax_amount: taxAmount,
-          total,
-          cash_received: received,
-          change_given: changeAmount,
-          status: 'completed',
-        })
-        .select()
-        .single();
-
       if (saleError) throw saleError;
+      if (!saleResult || saleResult.length === 0) throw new Error('Failed to create sale');
+
+      const sale = { id: saleResult[0].sale_id };
+      const receiptData = saleResult[0].receipt_number;
 
       // Create sale items
       const saleItems = cart.map((item) => ({
