@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +55,7 @@ type DateRange = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
 export default function SalesReports() {
   const { branch } = useAuth();
+  const { formatPrice } = useCurrency();
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -312,7 +314,7 @@ export default function SalesReports() {
                 <DollarSign className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</div>
                 <p className="text-xs text-muted-foreground">
                   {stats.totalSales} transactions
                 </p>
@@ -324,7 +326,7 @@ export default function SalesReports() {
                 <TrendingUp className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${stats.averageOrderValue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatPrice(stats.averageOrderValue)}</div>
                 <p className="text-xs text-muted-foreground">Per transaction</p>
               </CardContent>
             </Card>
@@ -344,9 +346,9 @@ export default function SalesReports() {
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${stats.totalTax.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatPrice(stats.totalTax)}</div>
                 <p className="text-xs text-muted-foreground">
-                  Discounts: ${stats.totalDiscount.toFixed(2)}
+                  Discounts: {formatPrice(stats.totalDiscount)}
                 </p>
               </CardContent>
             </Card>
@@ -413,7 +415,7 @@ export default function SalesReports() {
                             <TableCell className="font-medium">{product.name}</TableCell>
                             <TableCell className="text-right">{product.quantity}</TableCell>
                             <TableCell className="text-right font-mono">
-                              ${product.revenue.toFixed(2)}
+                              {formatPrice(product.revenue)}
                             </TableCell>
                           </TableRow>
                         ))
@@ -456,13 +458,13 @@ export default function SalesReports() {
                             </TableCell>
                             <TableCell className="text-right">{sale.sale_items.length}</TableCell>
                             <TableCell className="text-right font-mono">
-                              ${sale.subtotal.toFixed(2)}
+                              {formatPrice(sale.subtotal)}
                             </TableCell>
                             <TableCell className="text-right font-mono text-muted-foreground">
-                              ${(sale.tax_amount || 0).toFixed(2)}
+                              {formatPrice(sale.tax_amount || 0)}
                             </TableCell>
                             <TableCell className="text-right font-mono font-semibold">
-                              ${sale.total.toFixed(2)}
+                              {formatPrice(sale.total)}
                             </TableCell>
                           </TableRow>
                         ))

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const { profile, roles, branch } = useAuth();
+  const { formatPrice } = useCurrency();
   const [stats, setStats] = useState<DashboardStats>({
     todaySales: 0,
     todayTransactions: 0,
@@ -235,7 +237,7 @@ export default function Dashboard() {
                 <Loader2 className="h-6 w-6 animate-spin text-success" />
               ) : (
                 <>
-                  <div className="text-3xl font-bold text-success">${stats.todaySales.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-success">{formatPrice(stats.todaySales)}</div>
                   <p className="text-xs text-muted-foreground">
                     {stats.todayTransactions} transactions
                   </p>
@@ -359,7 +361,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">{sale.time}</p>
                     </div>
                   </div>
-                  <span className="font-mono font-bold text-lg text-success">${sale.total.toFixed(2)}</span>
+                  <span className="font-mono font-bold text-lg text-success">{formatPrice(sale.total)}</span>
                 </div>
               ))}
             </div>
