@@ -284,6 +284,11 @@ export default function POSTerminal() {
       return;
     }
 
+    if (!user) {
+      toast.error('User not authenticated');
+      return;
+    }
+
     setIsProcessing(true);
     try {
       // Create sale with atomic receipt number generation
@@ -292,7 +297,7 @@ export default function POSTerminal() {
         {
           p_branch_id: branch.id,
           p_branch_code: branch.code,
-          p_cashier_id: user!.id,
+          p_cashier_id: user.id,
           p_subtotal: subtotal,
           p_discount_amount: 0,
           p_tax_amount: taxAmount,
@@ -302,8 +307,14 @@ export default function POSTerminal() {
         }
       );
 
-      if (saleError) throw saleError;
-      if (!saleResult || saleResult.length === 0) throw new Error('Failed to create sale');
+      if (saleError) {
+        console.error('Sale creation error:', saleError);
+        throw new Error(saleError.message || 'Failed to create sale');
+      }
+      
+      if (!saleResult || saleResult.length === 0) {
+        throw new Error('No sale data returned from database');
+      }
 
       const sale = { id: saleResult[0].sale_id };
       const receiptData = saleResult[0].receipt_number;
@@ -317,7 +328,7 @@ export default function POSTerminal() {
         unit_price: item.unit_price,
         is_bulk_price: item.is_bulk_price,
         discount_amount: item.discount_amount,
-        tax_amount: item.total * (item.product.tax_rate / 100),
+        tax_amount: item.total * ((item.product.tax_rate || 0) / 100),
         total: item.total,
       }));
 
@@ -325,7 +336,10 @@ export default function POSTerminal() {
         .from('sale_items')
         .insert(saleItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Sale items error:', itemsError);
+        throw new Error(itemsError.message || 'Failed to save sale items');
+      }
 
       // Update inventory and record stock movements
       for (const item of cart) {
@@ -337,7 +351,7 @@ export default function POSTerminal() {
           .single();
 
         if (currentInventory) {
-          const newQuantity = currentInventory.quantity - item.quantity;
+          const newQuantity = (currentInventory.quantity || 0) - item.quantity;
           await supabase
             .from('branch_inventory')
             .update({ quantity: newQuantity })
@@ -352,7 +366,7 @@ export default function POSTerminal() {
           quantity: -item.quantity,
           reference_id: sale.id,
           reference_type: 'sale',
-          performed_by: user!.id,
+          performed_by: user.id,
         });
       }
 
@@ -385,9 +399,9 @@ export default function POSTerminal() {
       setCashReceived('');
       clearCart();
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing payment:', error);
-      toast.error('Failed to process payment');
+      toast.error(error?.message || 'Failed to process payment');
     } finally {
       setIsProcessing(false);
     }

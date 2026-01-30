@@ -15,6 +15,7 @@ import Categories from "./pages/admin/Categories";
 import Users from "./pages/admin/Users";
 import Branches from "./pages/admin/Branches";
 import Settings from "./pages/admin/Settings";
+import ShopSettings from "./pages/admin/ShopSettings";
 import InventoryManagement from "./pages/inventory/InventoryManagement";
 import StockMovements from "./pages/inventory/StockMovements";
 import Suppliers from "./pages/operations/Suppliers";
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/users" element={<Users />} />
               <Route path="/branches" element={<Branches />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/shop-settings" element={<ShopSettings />} />
               <Route path="/inventory" element={<InventoryManagement />} />
               <Route path="/stock-movements" element={<StockMovements />} />
               <Route path="/suppliers" element={<Suppliers />} />
