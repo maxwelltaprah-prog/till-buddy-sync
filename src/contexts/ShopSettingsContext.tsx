@@ -95,8 +95,13 @@ export function ShopSettingsProvider({ children }: { children: React.ReactNode }
 
 export function useShopSettings() {
   const context = useContext(ShopSettingsContext);
+  // Return default settings if used outside provider (prevents crashes during hydration)
   if (context === undefined) {
-    throw new Error('useShopSettings must be used within a ShopSettingsProvider');
+    return {
+      settings: defaultSettings,
+      isLoading: false,
+      refreshSettings: async () => {},
+    };
   }
   return context;
 }
