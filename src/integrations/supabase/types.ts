@@ -813,6 +813,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_sale_with_receipt: {
+        Args: {
+          p_branch_code: string
+          p_branch_id: string
+          p_cash_received: number
+          p_cashier_id: string
+          p_change_given: number
+          p_discount_amount: number
+          p_subtotal: number
+          p_tax_amount: number
+          p_total: number
+        }
+        Returns: {
+          receipt_number: string
+          sale_id: string
+        }[]
+      }
       generate_receipt_number: {
         Args: { branch_code: string }
         Returns: string
