@@ -123,6 +123,12 @@ const adminNavItems: NavItem[] = [
     roles: ['admin', 'branch_supervisor'],
   },
   {
+    title: 'Shop Settings',
+    url: '/shop-settings',
+    icon: Store,
+    roles: ['admin'],
+  },
+  {
     title: 'Settings',
     url: '/settings',
     icon: Settings,
