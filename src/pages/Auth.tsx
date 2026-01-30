@@ -78,7 +78,7 @@ export default function Auth() {
             <Store className="h-6 w-6 text-sidebar-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">iMaxSuperPOS</h1>
+            <h1 className="text-xl font-bold">SuperPOS</h1>
             <p className="text-sm text-sidebar-foreground/70">Enterprise Point of Sale</p>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function Auth() {
         </div>
 
         <p className="text-sm text-sidebar-foreground/50">
-          © 2024 iMaxSuperPOS. Enterprise Edition.
+          © 2024 SuperPOS. Enterprise Edition.
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export default function Auth() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Store className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">iMaxSuperPOS</span>
+              <span className="text-xl font-bold">SuperPOS</span>
             </div>
             <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>
