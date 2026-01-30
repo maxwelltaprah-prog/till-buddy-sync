@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { Loader2, Wifi, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Loader2, WifiOff } from 'lucide-react';
+import { OfflineStatus } from '@/components/OfflineStatus';
 
 export function AppLayout() {
   const { user, isLoading, profile, roles, branch } = useAuth();
@@ -67,21 +67,10 @@ export function AppLayout() {
             )}
           </div>
 
+
           <div className="flex items-center gap-2">
-            {/* Online status indicator */}
-            <div className="flex items-center gap-1.5 text-sm">
-              {navigator.onLine ? (
-                <>
-                  <Wifi className="h-4 w-4 text-success" />
-                  <span className="text-muted-foreground hidden sm:inline">Online</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-4 w-4 text-destructive" />
-                  <span className="text-destructive hidden sm:inline">Offline</span>
-                </>
-              )}
-            </div>
+            {/* Offline status indicator with sync */}
+            <OfflineStatus branchId={branch?.id} />
           </div>
         </header>
 
