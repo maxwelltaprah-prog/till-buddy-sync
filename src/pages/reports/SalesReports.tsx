@@ -1,0 +1,443 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import {
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  Users,
+  Loader2,
+  Download,
+  RefreshCw,
+  Calendar,
+  Receipt,
+} from 'lucide-react';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Sale = Tables<'sales'> & {
+  sale_items: Tables<'sale_items'>[];
+};
+
+const COLORS = ['hsl(var(--primary))', 'hsl(var(--success))', 'hsl(var(--warning))', 'hsl(var(--destructive))', 'hsl(var(--secondary))'];
+
+type DateRange = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+
+export default function SalesReports() {
+  const { branch } = useAuth();
+  
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>('today');
+  const [startDate, setStartDate] = useState<Date>(startOfDay(new Date()));
+  const [endDate, setEndDate] = useState<Date>(endOfDay(new Date()));
+
+  useEffect(() => {
+    updateDateRange(dateRange);
+  }, [dateRange]);
+
+  useEffect(() => {
+    if (branch) {
+      fetchSales();
+    }
+  }, [branch, startDate, endDate]);
+
+  const updateDateRange = (range: DateRange) => {
+    const now = new Date();
+    switch (range) {
+      case 'today':
+        setStartDate(startOfDay(now));
+        setEndDate(endOfDay(now));
+        break;
+      case 'yesterday':
+        const yesterday = subDays(now, 1);
+        setStartDate(startOfDay(yesterday));
+        setEndDate(endOfDay(yesterday));
+        break;
+      case 'week':
+        setStartDate(startOfWeek(now));
+        setEndDate(endOfWeek(now));
+        break;
+      case 'month':
+        setStartDate(startOfMonth(now));
+        setEndDate(endOfMonth(now));
+        break;
+    }
+  };
+
+  const fetchSales = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          *,
+          sale_items(*)
+        `)
+        .eq('branch_id', branch!.id)
+        .eq('status', 'completed')
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSales(data as Sale[] || []);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      toast.error('Failed to load sales data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Calculate stats
+  const stats = {
+    totalSales: sales.length,
+    totalRevenue: sales.reduce((sum, s) => sum + s.total, 0),
+    totalTax: sales.reduce((sum, s) => sum + (s.tax_amount || 0), 0),
+    totalDiscount: sales.reduce((sum, s) => sum + (s.discount_amount || 0), 0),
+    averageOrderValue: sales.length > 0 
+      ? sales.reduce((sum, s) => sum + s.total, 0) / sales.length 
+      : 0,
+    itemsSold: sales.reduce((sum, s) => 
+      sum + s.sale_items.reduce((iSum, item) => iSum + item.quantity, 0), 0
+    ),
+  };
+
+  // Prepare hourly chart data
+  const hourlyData = Array.from({ length: 24 }, (_, hour) => {
+    const hourSales = sales.filter(s => {
+      const saleHour = new Date(s.created_at!).getHours();
+      return saleHour === hour;
+    });
+    return {
+      hour: `${hour.toString().padStart(2, '0')}:00`,
+      sales: hourSales.length,
+      revenue: hourSales.reduce((sum, s) => sum + s.total, 0),
+    };
+  });
+
+  // Prepare category breakdown (from sale items)
+  const categoryBreakdown = sales.reduce((acc, sale) => {
+    sale.sale_items.forEach(item => {
+      const category = 'Products'; // Simplified - would need product->category lookup
+      if (!acc[category]) {
+        acc[category] = { name: category, value: 0, count: 0 };
+      }
+      acc[category].value += item.total;
+      acc[category].count += item.quantity;
+    });
+    return acc;
+  }, {} as Record<string, { name: string; value: number; count: number }>);
+
+  const categoryData = Object.values(categoryBreakdown);
+
+  // Top selling products
+  const productSales = sales.reduce((acc, sale) => {
+    sale.sale_items.forEach(item => {
+      if (!acc[item.product_id]) {
+        acc[item.product_id] = {
+          name: item.product_name,
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+      acc[item.product_id].quantity += item.quantity;
+      acc[item.product_id].revenue += item.total;
+    });
+    return acc;
+  }, {} as Record<string, { name: string; quantity: number; revenue: number }>);
+
+  const topProducts = Object.values(productSales)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  const exportToCSV = () => {
+    const headers = ['Receipt #', 'Date', 'Items', 'Subtotal', 'Tax', 'Total'];
+    const rows = sales.map(s => [
+      s.receipt_number,
+      format(new Date(s.created_at!), 'yyyy-MM-dd HH:mm'),
+      s.sale_items.length,
+      s.subtotal.toFixed(2),
+      (s.tax_amount || 0).toFixed(2),
+      s.total.toFixed(2),
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sales-report-${format(startDate, 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Report exported successfully');
+  };
+
+  if (!branch) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">No branch selected</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Sales Reports</h1>
+          <p className="text-muted-foreground">
+            Analyze sales performance for {branch.name}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={fetchSales} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Date range selector */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="yesterday">Yesterday</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Badge variant="outline">
+          {format(startDate, 'MMM d, yyyy')} - {format(endDate, 'MMM d, yyyy')}
+        </Badge>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <>
+          {/* Stats cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-success" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalSales} transactions
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${stats.averageOrderValue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Per transaction</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Items Sold</CardTitle>
+                <ShoppingCart className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.itemsSold}</div>
+                <p className="text-xs text-muted-foreground">Total quantity</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Tax Collected</CardTitle>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${stats.totalTax.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Discounts: ${stats.totalDiscount.toFixed(2)}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="products">Top Products</TabsTrigger>
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              {/* Hourly sales chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sales by Hour</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={hourlyData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="hour" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                          }}
+                        />
+                        <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Selling Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Quantity Sold</TableHead>
+                        <TableHead className="text-right">Revenue</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {topProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground">
+                            No sales data
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        topProducts.map((product, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="font-medium">{product.name}</TableCell>
+                            <TableCell className="text-right">{product.quantity}</TableCell>
+                            <TableCell className="text-right font-mono">
+                              ${product.revenue.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="transactions" className="space-y-4">
+              <Card>
+                <ScrollArea className="h-[500px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Receipt #</TableHead>
+                        <TableHead>Date & Time</TableHead>
+                        <TableHead className="text-right">Items</TableHead>
+                        <TableHead className="text-right">Subtotal</TableHead>
+                        <TableHead className="text-right">Tax</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sales.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            No transactions found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        sales.map((sale) => (
+                          <TableRow key={sale.id}>
+                            <TableCell className="font-mono text-sm">
+                              {sale.receipt_number}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(sale.created_at!), 'MMM d, HH:mm')}
+                            </TableCell>
+                            <TableCell className="text-right">{sale.sale_items.length}</TableCell>
+                            <TableCell className="text-right font-mono">
+                              ${sale.subtotal.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-muted-foreground">
+                              ${(sale.tax_amount || 0).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono font-semibold">
+                              ${sale.total.toFixed(2)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+    </div>
+  );
+}
