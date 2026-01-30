@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ShopSettingsProvider } from "@/contexts/ShopSettingsContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 // Pages
@@ -32,26 +33,28 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route element={<AppLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/pos" element={<POSTerminal />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/branches" element={<Branches />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/shop-settings" element={<ShopSettings />} />
-              <Route path="/inventory" element={<InventoryManagement />} />
-              <Route path="/stock-movements" element={<StockMovements />} />
-              <Route path="/suppliers" element={<Suppliers />} />
-              <Route path="/returns" element={<Returns />} />
-              <Route path="/reports" element={<SalesReports />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ShopSettingsProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/pos" element={<POSTerminal />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/branches" element={<Branches />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/shop-settings" element={<ShopSettings />} />
+                <Route path="/inventory" element={<InventoryManagement />} />
+                <Route path="/stock-movements" element={<StockMovements />} />
+                <Route path="/suppliers" element={<Suppliers />} />
+                <Route path="/returns" element={<Returns />} />
+                <Route path="/reports" element={<SalesReports />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ShopSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
