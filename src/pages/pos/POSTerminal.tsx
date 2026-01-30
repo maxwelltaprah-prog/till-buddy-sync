@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +29,11 @@ import {
   Loader2,
   X,
   Calculator,
+  Printer,
+  Receipt,
 } from 'lucide-react';
 import type { Product, CartItem, BulkPricingTier } from '@/types/database';
+import { generateReceiptPDF, printThermalReceipt, type ReceiptData } from '@/lib/receiptGenerator';
 
 interface ProductWithInventory extends Product {
   branch_inventory: { quantity: number }[];
@@ -43,10 +48,15 @@ export default function POSTerminal() {
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSearching, setIsSearching] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [cashReceived, setCashReceived] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAddToCartDialog, setShowAddToCartDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory | null>(null);
+  const [addQuantity, setAddQuantity] = useState(1);
+  const [useBulkPricing, setUseBulkPricing] = useState(false);
+  const [lastSaleData, setLastSaleData] = useState<ReceiptData | null>(null);
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
 
   // Calculated values
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
@@ -102,9 +112,9 @@ export default function POSTerminal() {
     );
   });
 
-  // Get effective price based on quantity
-  const getEffectivePrice = (product: Product, quantity: number): { price: number; isBulk: boolean } => {
-    if (!product.bulk_pricing_tiers || product.bulk_pricing_tiers.length === 0) {
+  // Get effective price based on quantity and pricing preference
+  const getEffectivePrice = (product: Product, quantity: number, forceBulk: boolean = false): { price: number; isBulk: boolean } => {
+    if (!product.bulk_pricing_tiers || product.bulk_pricing_tiers.length === 0 || !forceBulk) {
       return { price: product.retail_price, isBulk: false };
     }
 
@@ -123,8 +133,63 @@ export default function POSTerminal() {
     return { price: product.retail_price, isBulk: false };
   };
 
-  // Add product to cart
-  const addToCart = (product: ProductWithInventory) => {
+  // Get bulk price info for display
+  const getBulkPriceInfo = (product: Product): { minQty: number; price: number } | null => {
+    if (!product.bulk_pricing_tiers || product.bulk_pricing_tiers.length === 0) return null;
+    const activeTiers = product.bulk_pricing_tiers
+      .filter((tier) => tier.is_active)
+      .sort((a, b) => a.min_quantity - b.min_quantity);
+    if (activeTiers.length === 0) return null;
+    return { minQty: activeTiers[0].min_quantity, price: activeTiers[0].price };
+  };
+
+  // Open add to cart dialog
+  const openAddToCartDialog = (product: ProductWithInventory) => {
+    setSelectedProduct(product);
+    setAddQuantity(1);
+    const hasBulkPricing = product.bulk_pricing_tiers && product.bulk_pricing_tiers.length > 0;
+    setUseBulkPricing(hasBulkPricing && product.is_bulk_item);
+    setShowAddToCartDialog(true);
+  };
+
+  // Confirm add to cart
+  const confirmAddToCart = () => {
+    if (!selectedProduct) return;
+    
+    const availableStock = selectedProduct.branch_inventory?.[0]?.quantity || 0;
+    if (addQuantity > availableStock) {
+      toast.error('Not enough stock available');
+      return;
+    }
+
+    const existingIndex = cart.findIndex((item) => item.product.id === selectedProduct.id);
+    
+    if (existingIndex >= 0) {
+      const newQty = cart[existingIndex].quantity + addQuantity;
+      if (newQty > availableStock) {
+        toast.error('Not enough stock available');
+        return;
+      }
+      updateQuantityWithPricing(existingIndex, newQty, useBulkPricing);
+    } else {
+      const { price, isBulk } = getEffectivePrice(selectedProduct, addQuantity, useBulkPricing);
+      const newItem: CartItem = {
+        product: selectedProduct,
+        quantity: addQuantity,
+        unit_price: price,
+        is_bulk_price: isBulk,
+        discount_amount: 0,
+        total: price * addQuantity,
+      };
+      setCart([...cart, newItem]);
+    }
+    
+    setShowAddToCartDialog(false);
+    setSelectedProduct(null);
+  };
+
+  // Quick add (single item retail price)
+  const quickAddToCart = (product: ProductWithInventory) => {
     const existingIndex = cart.findIndex((item) => item.product.id === product.id);
     const availableStock = product.branch_inventory?.[0]?.quantity || 0;
 
@@ -140,21 +205,20 @@ export default function POSTerminal() {
         toast.error('Product out of stock');
         return;
       }
-      const { price, isBulk } = getEffectivePrice(product, 1);
       const newItem: CartItem = {
         product,
         quantity: 1,
-        unit_price: price,
-        is_bulk_price: isBulk,
+        unit_price: product.retail_price,
+        is_bulk_price: false,
         discount_amount: 0,
-        total: price,
+        total: product.retail_price,
       };
       setCart([...cart, newItem]);
     }
   };
 
-  // Update quantity
-  const updateQuantity = (index: number, newQuantity: number) => {
+  // Update quantity maintaining pricing type
+  const updateQuantityWithPricing = (index: number, newQuantity: number, forceBulk: boolean) => {
     if (newQuantity <= 0) {
       removeFromCart(index);
       return;
@@ -168,7 +232,7 @@ export default function POSTerminal() {
       return;
     }
 
-    const { price, isBulk } = getEffectivePrice(item.product, newQuantity);
+    const { price, isBulk } = getEffectivePrice(item.product, newQuantity, forceBulk);
     const updatedCart = [...cart];
     updatedCart[index] = {
       ...item,
@@ -180,6 +244,12 @@ export default function POSTerminal() {
     setCart(updatedCart);
   };
 
+  // Update quantity
+  const updateQuantity = (index: number, newQuantity: number) => {
+    const item = cart[index];
+    updateQuantityWithPricing(index, newQuantity, item.is_bulk_price);
+  };
+
   // Remove from cart
   const removeFromCart = (index: number) => {
     setCart(cart.filter((_, i) => i !== index));
@@ -188,6 +258,12 @@ export default function POSTerminal() {
   // Clear cart
   const clearCart = () => {
     setCart([]);
+  };
+
+  // Toggle pricing type for cart item
+  const togglePricingType = (index: number) => {
+    const item = cart[index];
+    updateQuantityWithPricing(index, item.quantity, !item.is_bulk_price);
   };
 
   // Process payment
@@ -259,7 +335,6 @@ export default function POSTerminal() {
 
       // Update inventory and record stock movements
       for (const item of cart) {
-        // First get current quantity
         const { data: currentInventory } = await supabase
           .from('branch_inventory')
           .select('quantity')
@@ -269,18 +344,13 @@ export default function POSTerminal() {
 
         if (currentInventory) {
           const newQuantity = currentInventory.quantity - item.quantity;
-          const { error: inventoryError } = await supabase
+          await supabase
             .from('branch_inventory')
             .update({ quantity: newQuantity })
             .eq('branch_id', branch.id)
             .eq('product_id', item.product.id);
-
-          if (inventoryError) {
-            console.error('Inventory update error:', inventoryError);
-          }
         }
 
-        // Record stock movement
         await supabase.from('stock_movements').insert({
           branch_id: branch.id,
           product_id: item.product.id,
@@ -292,16 +362,58 @@ export default function POSTerminal() {
         });
       }
 
-      toast.success(`Sale completed! Receipt: ${receiptData}`);
+      // Prepare receipt data
+      const receiptDataForPrint: ReceiptData = {
+        receiptNumber: receiptData,
+        date: new Date(),
+        branchName: branch.name,
+        branchAddress: branch.address || '',
+        cashierName: user?.email || 'Cashier',
+        items: cart.map(item => ({
+          name: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          total: item.total,
+          isBulk: item.is_bulk_price,
+        })),
+        subtotal,
+        taxAmount,
+        total,
+        cashReceived: received,
+        change: changeAmount,
+      };
+
+      setLastSaleData(receiptDataForPrint);
       setShowPaymentDialog(false);
+      setShowReceiptDialog(true);
+      
+      toast.success(`Sale completed! Receipt: ${receiptData}`);
       setCashReceived('');
       clearCart();
-      fetchProducts(); // Refresh stock
+      fetchProducts();
     } catch (error) {
       console.error('Error processing payment:', error);
       toast.error('Failed to process payment');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Handle print receipt
+  const handlePrintReceipt = async (type: 'thermal' | 'pdf') => {
+    if (!lastSaleData) return;
+    
+    try {
+      if (type === 'thermal') {
+        await printThermalReceipt(lastSaleData);
+        toast.success('Sent to thermal printer');
+      } else {
+        await generateReceiptPDF(lastSaleData);
+        toast.success('PDF downloaded');
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      toast.error('Failed to print receipt');
     }
   };
 
@@ -354,44 +466,55 @@ export default function POSTerminal() {
               {filteredProducts.map((product) => {
                 const stock = product.branch_inventory?.[0]?.quantity || 0;
                 const inCart = cart.find((item) => item.product.id === product.id);
+                const bulkInfo = getBulkPriceInfo(product);
                 
                 return (
-                  <button
+                  <div
                     key={product.id}
-                    onClick={() => addToCart(product)}
-                    disabled={stock <= 0}
-                    className="p-4 rounded-lg border bg-card text-left hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed relative group"
+                    className="p-4 rounded-lg border bg-card text-left hover:shadow-md transition-all relative group"
                   >
                     {inCart && (
                       <Badge className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center p-0 rounded-full">
                         {inCart.quantity}
                       </Badge>
                     )}
-                    <div className="aspect-square bg-muted rounded-md mb-2 flex items-center justify-center">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      ) : (
-                        <Package className="h-8 w-8 text-muted-foreground" />
-                      )}
-                    </div>
-                    <p className="font-medium text-sm truncate">{product.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="font-bold">${product.retail_price.toFixed(2)}</span>
-                      <span className={`text-xs ${stock <= product.min_stock_level ? 'text-destructive' : 'text-muted-foreground'}`}>
-                        {stock} in stock
-                      </span>
-                    </div>
-                    {product.is_bulk_item && product.bulk_pricing_tiers?.length > 0 && (
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        Bulk pricing available
-                      </Badge>
+                    <button
+                      onClick={() => quickAddToCart(product)}
+                      disabled={stock <= 0}
+                      className="w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="aspect-square bg-muted rounded-md mb-2 flex items-center justify-center">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-full h-full object-cover rounded-md"
+                          />
+                        ) : (
+                          <Package className="h-8 w-8 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="font-bold">${product.retail_price.toFixed(2)}</span>
+                        <span className={`text-xs ${stock <= product.min_stock_level ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {stock} in stock
+                        </span>
+                      </div>
+                    </button>
+                    {bulkInfo && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full mt-2 text-xs"
+                        onClick={() => openAddToCartDialog(product)}
+                        disabled={stock <= 0}
+                      >
+                        Bulk: ${bulkInfo.price.toFixed(2)} (≥{bulkInfo.minQty})
+                      </Button>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -440,11 +563,23 @@ export default function POSTerminal() {
                       <span className="text-sm text-muted-foreground">
                         ${item.unit_price.toFixed(2)}
                       </span>
-                      {item.is_bulk_price && (
-                        <Badge variant="outline" className="text-xs price-bulk">
-                          Bulk
+                      {item.is_bulk_price ? (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer bg-primary/10"
+                          onClick={() => togglePricingType(index)}
+                        >
+                          Bulk ✓
                         </Badge>
-                      )}
+                      ) : item.product.bulk_pricing_tiers?.length ? (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs cursor-pointer"
+                          onClick={() => togglePricingType(index)}
+                        >
+                          Retail
+                        </Badge>
+                      ) : null}
                     </div>
                     <p className="font-semibold mt-1">${item.total.toFixed(2)}</p>
                   </div>
@@ -515,6 +650,92 @@ export default function POSTerminal() {
           </Button>
         </div>
       </div>
+
+      {/* Add to cart dialog */}
+      <Dialog open={showAddToCartDialog} onOpenChange={setShowAddToCartDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add to Cart</DialogTitle>
+            <DialogDescription>
+              {selectedProduct?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">Quantity</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setAddQuantity(Math.max(1, addQuantity - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min="1"
+                  value={addQuantity}
+                  onChange={(e) => setAddQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-20 text-center"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setAddQuantity(addQuantity + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {selectedProduct?.bulk_pricing_tiers?.length > 0 && (
+              <div className="flex items-center justify-between p-4 rounded-lg border">
+                <div>
+                  <Label>Use Bulk Pricing</Label>
+                  <p className="text-sm text-muted-foreground">
+                    ${getBulkPriceInfo(selectedProduct)?.price.toFixed(2)}/unit
+                  </p>
+                </div>
+                <Switch
+                  checked={useBulkPricing}
+                  onCheckedChange={setUseBulkPricing}
+                />
+              </div>
+            )}
+
+            <div className="p-4 rounded-lg bg-muted">
+              <div className="flex justify-between text-sm">
+                <span>Unit Price:</span>
+                <span className="font-medium">
+                  ${(useBulkPricing && selectedProduct
+                    ? getEffectivePrice(selectedProduct, addQuantity, true).price
+                    : selectedProduct?.retail_price || 0
+                  ).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold mt-2">
+                <span>Total:</span>
+                <span>
+                  ${((useBulkPricing && selectedProduct
+                    ? getEffectivePrice(selectedProduct, addQuantity, true).price
+                    : selectedProduct?.retail_price || 0
+                  ) * addQuantity).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddToCartDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmAddToCart}>
+              Add to Cart
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -588,6 +809,54 @@ export default function POSTerminal() {
               ) : (
                 'Complete Sale'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Print Receipt
+            </DialogTitle>
+            <DialogDescription>
+              Receipt #{lastSaleData?.receiptNumber}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-muted text-center">
+              <p className="text-2xl font-bold text-success">Sale Complete!</p>
+              <p className="text-muted-foreground">Total: ${lastSaleData?.total.toFixed(2)}</p>
+              {lastSaleData && lastSaleData.change > 0 && (
+                <p className="text-muted-foreground">Change: ${lastSaleData.change.toFixed(2)}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handlePrintReceipt('thermal')}
+              >
+                <Printer className="mr-2 h-4 w-4" />
+                Thermal Print
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handlePrintReceipt('pdf')}
+              >
+                <Receipt className="mr-2 h-4 w-4" />
+                Download PDF
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowReceiptDialog(false)}>
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -14,9 +14,11 @@ import Products from "./pages/admin/Products";
 import Categories from "./pages/admin/Categories";
 import Users from "./pages/admin/Users";
 import Branches from "./pages/admin/Branches";
+import Settings from "./pages/admin/Settings";
 import InventoryManagement from "./pages/inventory/InventoryManagement";
 import StockMovements from "./pages/inventory/StockMovements";
 import Suppliers from "./pages/operations/Suppliers";
+import Returns from "./pages/operations/Returns";
 import SalesReports from "./pages/reports/SalesReports";
 import NotFound from "./pages/NotFound";
 
@@ -39,9 +41,11 @@ const App = () => (
               <Route path="/categories" element={<Categories />} />
               <Route path="/users" element={<Users />} />
               <Route path="/branches" element={<Branches />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/inventory" element={<InventoryManagement />} />
               <Route path="/stock-movements" element={<StockMovements />} />
               <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/returns" element={<Returns />} />
               <Route path="/reports" element={<SalesReports />} />
             </Route>
             <Route path="*" element={<NotFound />} />
