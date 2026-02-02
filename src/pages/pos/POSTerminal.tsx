@@ -403,6 +403,9 @@ export default function POSTerminal() {
         receiptFooter: shopSettings.receipt_footer,
         currencySymbol: shopSettings.currency_symbol,
         primaryColor: shopSettings.primary_color,
+        phone: shopSettings.phone,
+        email: shopSettings.email,
+        address: shopSettings.address,
       };
 
       const receiptDataForPrint: ReceiptData = {

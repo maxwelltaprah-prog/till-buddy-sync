@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useShopSettings as useShopSettingsContext } from '@/contexts/ShopSettingsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,6 +17,9 @@ import {
   Palette,
   Save,
   ImageIcon,
+  Phone,
+  Mail,
+  MapPin,
 } from 'lucide-react';
 
 interface ShopSettings {
@@ -26,22 +30,29 @@ interface ShopSettings {
   receipt_footer: string;
   currency_symbol: string;
   primary_color: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 const defaultSettings: ShopSettings = {
-  shop_name: 'SuperPOS',
+  shop_name: 'iMaxSuperPOS',
   tagline: 'Enterprise Point of Sale',
   logo_url: '',
   receipt_header: 'Thank you for shopping with us!',
   receipt_footer: 'Visit us again soon!',
   currency_symbol: '$',
   primary_color: '#7c3aed',
+  phone: '',
+  email: '',
+  address: '',
 };
 
 export default function ShopSettings() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { refreshSettings: refreshGlobalSettings } = useShopSettingsContext();
 
   const [settings, setSettings] = useState<ShopSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +95,7 @@ export default function ShopSettings() {
         .from('system_settings')
         .select('id')
         .eq('key', 'shop_settings')
-        .single();
+        .maybeSingle();
 
       const settingsToSave = { ...settings, logo_url: previewLogo || settings.logo_url };
 
@@ -109,6 +120,8 @@ export default function ShopSettings() {
       }
       
       setSettings(settingsToSave);
+      // Refresh the global context so all components get updated settings
+      await refreshGlobalSettings();
       toast.success('Shop settings saved successfully');
     } catch (error) {
       console.error('Error saving shop settings:', error);
@@ -265,6 +278,61 @@ export default function ShopSettings() {
                     </p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact Information */}
+          <Card className="glass">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5" />
+                Contact Information
+              </CardTitle>
+              <CardDescription>
+                Shop contact details for receipts
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  value={settings.phone}
+                  onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={settings.email}
+                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                  placeholder="contact@yourstore.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Store Address
+                </Label>
+                <Textarea
+                  id="address"
+                  value={settings.address}
+                  onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                  placeholder="123 Main Street, City, State 12345"
+                  rows={2}
+                />
               </div>
             </CardContent>
           </Card>

@@ -9,16 +9,22 @@ export interface ShopSettings {
   receipt_footer: string;
   currency_symbol: string;
   primary_color: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 const defaultSettings: ShopSettings = {
-  shop_name: 'SuperPOS',
+  shop_name: 'iMaxSuperPOS',
   tagline: 'Enterprise Point of Sale',
   logo_url: '',
   receipt_header: 'Thank you for shopping with us!',
   receipt_footer: 'Visit us again soon!',
   currency_symbol: '$',
   primary_color: '#7c3aed',
+  phone: '',
+  email: '',
+  address: '',
 };
 
 interface ShopSettingsContextType {

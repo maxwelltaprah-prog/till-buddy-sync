@@ -8,6 +8,9 @@ export interface ShopBranding {
   receiptFooter: string;
   currencySymbol: string;
   primaryColor?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 export interface ReceiptData {
@@ -50,9 +53,12 @@ const formatPrice = (amount: number, symbol: string = '$'): string => {
 // Generate thermal printer receipt (ESC/POS format)
 export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   const symbol = data.branding?.currencySymbol || '$';
-  const shopName = data.branding?.shopName || 'SUPERPOS';
+  const shopName = data.branding?.shopName || 'iMaxSuperPOS';
   const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
   const footerMsg = data.branding?.receiptFooter || 'Please come again';
+  const phone = data.branding?.phone;
+  const email = data.branding?.email;
+  const address = data.branding?.address;
   
   // Build receipt text
   const lines: string[] = [];
@@ -70,6 +76,15 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   lines.push(center(shopName.toUpperCase()));
   if (data.branding?.tagline) {
     lines.push(center(data.branding.tagline));
+  }
+  if (address) {
+    lines.push(center(address));
+  }
+  if (phone) {
+    lines.push(center(`Tel: ${phone}`));
+  }
+  if (email) {
+    lines.push(center(email));
   }
   lines.push(center(data.branchName));
   if (data.branchAddress) {
@@ -189,12 +204,15 @@ const printViaWindow = (text: string) => {
 // Generate PDF receipt
 export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
   const symbol = data.branding?.currencySymbol || '$';
-  const shopName = data.branding?.shopName || 'SUPERPOS';
+  const shopName = data.branding?.shopName || 'iMaxSuperPOS';
   const tagline = data.branding?.tagline || '';
   const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
   const footerMsg = data.branding?.receiptFooter || 'Please come again';
   const primaryColor = data.branding?.primaryColor || '#7c3aed';
   const logoUrl = data.branding?.logoUrl;
+  const phone = data.branding?.phone;
+  const email = data.branding?.email;
+  const address = data.branding?.address;
 
   // Create a simple HTML-based PDF using browser print
   const htmlContent = `
@@ -304,12 +322,15 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
     </head>
     <body>
       <div class="header">
-        ${logoUrl ? `<img src="${logoUrl}" alt="Logo" class="logo" />` : ''}
-        <h1>${shopName}</h1>
-        ${tagline ? `<p class="tagline">${tagline}</p>` : ''}
-        <p>${data.branchName}</p>
-        ${data.branchAddress ? `<p>${data.branchAddress}</p>` : ''}
-        <p class="header-message">${headerMsg}</p>
+        \${logoUrl ? \`<img src="\${logoUrl}" alt="Logo" class="logo" />\` : ''}
+        <h1>\${shopName}</h1>
+        \${tagline ? \`<p class="tagline">\${tagline}</p>\` : ''}
+        \${address ? \`<p>\${address}</p>\` : ''}
+        \${phone ? \`<p>Tel: \${phone}</p>\` : ''}
+        \${email ? \`<p>\${email}</p>\` : ''}
+        <p>\${data.branchName}</p>
+        \${data.branchAddress ? \`<p>\${data.branchAddress}</p>\` : ''}
+        <p class="header-message">\${headerMsg}</p>
       </div>
       
       <div class="info">
