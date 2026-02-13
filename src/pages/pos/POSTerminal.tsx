@@ -105,7 +105,7 @@ export default function POSTerminal() {
           *,
           category:categories(*),
           bulk_pricing_tiers(*),
-          branch_inventory!inner(quantity)
+          branch_inventory(quantity)
         `)
         .eq('is_active', true);
 
