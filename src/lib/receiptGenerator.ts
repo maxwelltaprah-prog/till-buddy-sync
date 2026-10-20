@@ -28,6 +28,7 @@ export interface ReceiptData {
   }[];
   subtotal: number;
   taxAmount: number;
+  taxLines?: { code: string; name: string; rate: number; amount: number }[];
   total: number;
   cashReceived: number;
   change: number;
@@ -116,7 +117,10 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   
   // Totals
   lines.push(`${'Subtotal:'.padEnd(30)}${formatPrice(data.subtotal, symbol).padStart(10)}`);
-  lines.push(`${'Tax:'.padEnd(30)}${formatPrice(data.taxAmount, symbol).padStart(10)}`);
+  (data.taxLines || []).forEach((t) => {
+    lines.push(`${`${t.code} (${t.rate}%):`.padEnd(30)}${formatPrice(t.amount, symbol).padStart(10)}`);
+  });
+  lines.push(`${'Total Tax:'.padEnd(30)}${formatPrice(data.taxAmount, symbol).padStart(10)}`);
   lines.push(separator);
   lines.push(`${'TOTAL:'.padEnd(30)}${formatPrice(data.total, symbol).padStart(10)}`);
   lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
@@ -365,7 +369,8 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
       
       <div class="totals">
         <div><span>Subtotal:</span><span>${formatPrice(data.subtotal, symbol)}</span></div>
-        <div><span>Tax:</span><span>${formatPrice(data.taxAmount, symbol)}</span></div>
+        ${(data.taxLines || []).map((t) => `<div><span>${t.code} (${t.rate}%):</span><span>${formatPrice(t.amount, symbol)}</span></div>`).join('')}
+        <div><span>Total Tax:</span><span>${formatPrice(data.taxAmount, symbol)}</span></div>
         <div class="grand-total"><span>TOTAL:</span><span>${formatPrice(data.total, symbol)}</span></div>
         <div><span>Cash:</span><span>${formatPrice(data.cashReceived, symbol)}</span></div>
         <div><span>Change:</span><span>${formatPrice(data.change, symbol)}</span></div>
