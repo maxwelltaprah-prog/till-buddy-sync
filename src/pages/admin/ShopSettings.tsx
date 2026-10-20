@@ -41,7 +41,7 @@ const defaultSettings: ShopSettings = {
   logo_url: '',
   receipt_header: 'Thank you for shopping with us!',
   receipt_footer: 'Visit us again soon!',
-  currency_symbol: '$',
+  currency_symbol: 'GH₵',
   primary_color: '#7c3aed',
   phone: '',
   email: '',
@@ -226,7 +226,7 @@ export default function ShopSettings() {
                   id="currency"
                   value={settings.currency_symbol}
                   onChange={(e) => setSettings({ ...settings, currency_symbol: e.target.value })}
-                  placeholder="$"
+                  placeholder="GH₵"
                   maxLength={5}
                   className="w-24"
                 />
