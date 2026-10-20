@@ -69,6 +69,7 @@ export type Database = {
           branch_id: string
           created_at: string | null
           id: string
+          is_available: boolean
           last_restocked_at: string | null
           product_id: string
           quantity: number | null
@@ -79,6 +80,7 @@ export type Database = {
           branch_id: string
           created_at?: string | null
           id?: string
+          is_available?: boolean
           last_restocked_at?: string | null
           product_id: string
           quantity?: number | null
@@ -89,6 +91,7 @@ export type Database = {
           branch_id?: string
           created_at?: string | null
           id?: string
+          is_available?: boolean
           last_restocked_at?: string | null
           product_id?: string
           quantity?: number | null
@@ -120,6 +123,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          location_type: string
           name: string
           operating_hours: Json | null
           phone: string | null
@@ -134,6 +138,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          location_type?: string
           name: string
           operating_hours?: Json | null
           phone?: string | null
@@ -148,6 +153,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          location_type?: string
           name?: string
           operating_hours?: Json | null
           phone?: string | null
@@ -242,6 +248,57 @@ export type Database = {
           },
         ]
       }
+      product_batches: {
+        Row: {
+          batch_number: string | null
+          branch_id: string
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          mfg_date: string | null
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          batch_number?: string | null
+          branch_id: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          mfg_date?: string | null
+          product_id: string
+          quantity?: number
+        }
+        Update: {
+          batch_number?: string | null
+          branch_id?: string
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          mfg_date?: string | null
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_batches_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -257,6 +314,7 @@ export type Database = {
           min_stock_level: number | null
           name: string
           retail_price: number
+          shelf_life_days: number | null
           sku: string
           supplier_id: string | null
           tax_rate: number | null
@@ -277,6 +335,7 @@ export type Database = {
           min_stock_level?: number | null
           name: string
           retail_price?: number
+          shelf_life_days?: number | null
           sku: string
           supplier_id?: string | null
           tax_rate?: number | null
@@ -297,6 +356,7 @@ export type Database = {
           min_stock_level?: number | null
           name?: string
           retail_price?: number
+          shelf_life_days?: number | null
           sku?: string
           supplier_id?: string | null
           tax_rate?: number | null
@@ -478,6 +538,7 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          cost_price: number | null
           created_at: string | null
           discount_amount: number | null
           id: string
@@ -487,10 +548,12 @@ export type Database = {
           quantity: number
           sale_id: string
           tax_amount: number | null
+          tax_breakdown: Json | null
           total: number
           unit_price: number
         }
         Insert: {
+          cost_price?: number | null
           created_at?: string | null
           discount_amount?: number | null
           id?: string
@@ -500,10 +563,12 @@ export type Database = {
           quantity: number
           sale_id: string
           tax_amount?: number | null
+          tax_breakdown?: Json | null
           total: number
           unit_price: number
         }
         Update: {
+          cost_price?: number | null
           created_at?: string | null
           discount_amount?: number | null
           id?: string
@@ -513,6 +578,7 @@ export type Database = {
           quantity?: number
           sale_id?: string
           tax_amount?: number | null
+          tax_breakdown?: Json | null
           total?: number
           unit_price?: number
         }
@@ -551,6 +617,7 @@ export type Database = {
           status: Database["public"]["Enums"]["transaction_status"] | null
           subtotal: number
           tax_amount: number | null
+          tax_breakdown: Json | null
           total: number
           updated_at: string | null
           void_reason: string | null
@@ -574,6 +641,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["transaction_status"] | null
           subtotal?: number
           tax_amount?: number | null
+          tax_breakdown?: Json | null
           total?: number
           updated_at?: string | null
           void_reason?: string | null
@@ -597,6 +665,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["transaction_status"] | null
           subtotal?: number
           tax_amount?: number | null
+          tax_breakdown?: Json | null
           total?: number
           updated_at?: string | null
           void_reason?: string | null
@@ -670,6 +739,61 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_transfers: {
+        Row: {
+          created_at: string
+          from_branch_id: string
+          id: string
+          notes: string | null
+          performed_by: string | null
+          product_id: string
+          quantity: number
+          to_branch_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_branch_id: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          product_id: string
+          quantity: number
+          to_branch_id: string
+        }
+        Update: {
+          created_at?: string
+          from_branch_id?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          product_id?: string
+          quantity?: number
+          to_branch_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transfers_from_branch_id_fkey"
+            columns: ["from_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_branch_id_fkey"
+            columns: ["to_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
             referencedColumns: ["id"]
           },
         ]
@@ -787,6 +911,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_components: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          rate: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          rate?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -853,6 +1013,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      transfer_stock: {
+        Args: {
+          p_from: string
+          p_notes: string
+          p_product: string
+          p_qty: number
+          p_to: string
+        }
+        Returns: string
       }
     }
     Enums: {
