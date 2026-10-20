@@ -47,13 +47,13 @@ const formatDate = (date: Date): string => {
 };
 
 // Format price with currency symbol
-const formatPrice = (amount: number, symbol: string = '$'): string => {
+const formatPrice = (amount: number, symbol: string = 'GH₵'): string => {
   return `${symbol}${amount.toFixed(2)}`;
 };
 
 // Generate thermal printer receipt (ESC/POS format)
 export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
-  const symbol = data.branding?.currencySymbol || '$';
+  const symbol = data.branding?.currencySymbol || 'GH₵';
   const shopName = data.branding?.shopName || 'iMaxSuperPOS';
   const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
   const footerMsg = data.branding?.receiptFooter || 'Please come again';
@@ -207,7 +207,7 @@ const printViaWindow = (text: string) => {
 
 // Generate PDF receipt
 export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
-  const symbol = data.branding?.currencySymbol || '$';
+  const symbol = data.branding?.currencySymbol || 'GH₵';
   const shopName = data.branding?.shopName || 'iMaxSuperPOS';
   const tagline = data.branding?.tagline || '';
   const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';

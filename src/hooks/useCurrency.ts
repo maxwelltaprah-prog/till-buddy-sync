@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 
 export function useCurrency() {
   const { settings } = useShopSettings();
-  const symbol = settings.currency_symbol || '$';
+  const symbol = settings.currency_symbol || 'GH₵';
 
   const formatCurrency = useCallback((amount: number, decimals: number = 2): string => {
     return `${symbol}${amount.toFixed(decimals)}`;
