@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useRef } from 'react';
+import { useReportBranch } from '@/hooks/useReportBranch';
+import { ReportBranchSelector } from '@/components/ReportBranchSelector';
 import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,8 @@ type Sale = Tables<'sales'> & {
 type DateRange = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
 export default function SalesReports() {
-  const { branch } = useAuth();
+  const scope = useReportBranch();
+  const requestId = useRef(0);
   const { formatPrice, code } = useCurrency();
   
   const [sales, setSales] = useState<Sale[]>([]);
@@ -72,10 +74,11 @@ export default function SalesReports() {
   }, [dateRange]);
 
   useEffect(() => {
-    if (branch) {
+    if (scope.canView) {
       fetchSales();
     }
-  }, [branch, startDate, endDate]);
+    return () => { requestId.current += 1; };
+  }, [scope.branchId, scope.canView, startDate, endDate]);
 
   const updateDateRange = (range: DateRange) => {
     const now = new Date();
@@ -119,27 +122,32 @@ export default function SalesReports() {
   };
 
   const fetchSales = async () => {
+    if (!scope.canView) return;
+    const currentRequest = ++requestId.current;
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      setSales([]);
+      let query = supabase
         .from('sales')
         .select(`
           *,
           sale_items(*)
         `)
-        .eq('branch_id', branch!.id)
         .eq('status', 'completed')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .order('created_at', { ascending: false });
-
+      if (scope.branchId) query = query.eq('branch_id', scope.branchId);
+      const { data, error } = await query;
+      if (currentRequest !== requestId.current) return;
       if (error) throw error;
       setSales(data as Sale[] || []);
     } catch (error) {
+      if (currentRequest !== requestId.current) return;
       console.error('Error fetching sales:', error);
       toast.error('Failed to load sales data');
     } finally {
-      setIsLoading(false);
+      if (currentRequest === requestId.current) setIsLoading(false);
     }
   };
 
@@ -160,7 +168,7 @@ export default function SalesReports() {
   // Prepare hourly chart data
   const hourlyData = Array.from({ length: 24 }, (_, hour) => {
     const hourSales = sales.filter(s => {
-      const saleHour = new Date(s.created_at!).getHours();
+      const saleHour = s.created_at ? new Date(s.created_at).getHours() : -1;
       return saleHour === hour;
     });
     return {
@@ -194,7 +202,7 @@ export default function SalesReports() {
     const headers = ['Receipt #', 'Date', 'Items', 'Subtotal', 'Tax', 'Total'];
     const rows = sales.map(s => [
       s.receipt_number,
-      format(new Date(s.created_at!), 'yyyy-MM-dd HH:mm'),
+      s.created_at ? format(new Date(s.created_at), 'yyyy-MM-dd HH:mm') : '',
       s.sale_items.length,
       s.subtotal.toFixed(2),
       (s.tax_amount || 0).toFixed(2),
@@ -206,13 +214,13 @@ export default function SalesReports() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sales-report-${format(startDate, 'yyyy-MM-dd')}.csv`;
+    a.download = `sales-report-${scope.branchId ?? 'all-branches'}-${format(startDate, 'yyyy-MM-dd')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Report exported successfully');
   };
 
-  if (!branch) {
+  if (!scope.canView) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">No branch selected</p>
@@ -222,11 +230,11 @@ export default function SalesReports() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Sales Reports</h1>
           <p className="text-muted-foreground">
-            Analyze sales performance for {branch.name} · All amounts in {code}
+            {scope.branchName} · All amounts in {code}
           </p>
         </div>
         <div className="flex gap-2">
@@ -234,7 +242,7 @@ export default function SalesReports() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button onClick={exportToCSV} variant="outline">
+          <Button onClick={exportToCSV} variant="outline" disabled={isLoading}>
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -243,6 +251,7 @@ export default function SalesReports() {
 
       {/* Date range selector */}
       <div className="flex flex-wrap items-center gap-4">
+        <ReportBranchSelector scope={scope} />
         <div className="flex items-center gap-2">
           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           <Select value={dateRange} onValueChange={(v: DateRange) => setDateRange(v)}>
@@ -454,7 +463,7 @@ export default function SalesReports() {
                               {sale.receipt_number}
                             </TableCell>
                             <TableCell className="text-muted-foreground">
-                              {format(new Date(sale.created_at!), 'MMM d, HH:mm')}
+                              {sale.created_at ? format(new Date(sale.created_at), 'MMM d, HH:mm') : '—'}
                             </TableCell>
                             <TableCell className="text-right">{sale.sale_items.length}</TableCell>
                             <TableCell className="text-right font-mono">
