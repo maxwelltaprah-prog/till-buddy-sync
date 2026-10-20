@@ -47,6 +47,7 @@ import { calculateTaxes } from '@/lib/tax';
 
 interface ProductWithInventory extends Product {
   branch_inventory: { quantity: number; is_available?: boolean }[];
+  expired_qty?: number;
 }
 
 export default function POSTerminal() {
@@ -125,7 +126,29 @@ export default function POSTerminal() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setProducts((data as ProductWithInventory[]) || []);
+      // Expired batches at this branch cannot be sold: remove them from sellable stock
+      const today = new Date().toISOString().slice(0, 10);
+      const expiredMap = new Map<string, number>();
+      if (branch) {
+        const { data: expired } = await supabase
+          .from('product_batches')
+          .select('product_id, quantity')
+          .eq('branch_id', branch.id)
+          .gt('quantity', 0)
+          .lt('expiry_date', today);
+        expired?.forEach((b) => expiredMap.set(b.product_id, (expiredMap.get(b.product_id) || 0) + Number(b.quantity)));
+      }
+      const list = ((data as ProductWithInventory[]) || []).map((p) => {
+        const expiredQty = expiredMap.get(p.id) || 0;
+        if (!expiredQty) return p;
+        const inv = p.branch_inventory?.[0];
+        return {
+          ...p,
+          expired_qty: expiredQty,
+          branch_inventory: [{ ...(inv || { quantity: 0 }), quantity: Math.max(0, Number(inv?.quantity || 0) - expiredQty) }],
+        };
+      });
+      setProducts(list);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -180,6 +203,14 @@ export default function POSTerminal() {
 
   // Open add to cart dialog
   const openAddToCartDialog = (product: ProductWithInventory) => {
+    if (product.expired_qty) {
+      const sellable = product.branch_inventory?.[0]?.quantity || 0;
+      if (sellable <= 0) {
+        toast.error(`${product.name}: all stock is EXPIRED — sale blocked. Remove expired batch from shelf.`);
+        return;
+      }
+      toast.warning(`${product.name}: ${product.expired_qty} expired unit(s) must not be sold. Only ${sellable} sellable.`);
+    }
     setSelectedProduct(product);
     setAddQuantity(1);
     const hasBulkPricing = product.bulk_pricing_tiers && product.bulk_pricing_tiers.length > 0;
@@ -225,6 +256,14 @@ export default function POSTerminal() {
 
   // Quick add (single item retail price)
   const quickAddToCart = (product: ProductWithInventory) => {
+    if (product.expired_qty) {
+      const sellable = product.branch_inventory?.[0]?.quantity || 0;
+      if (sellable <= 0) {
+        toast.error(`${product.name}: all stock is EXPIRED — sale blocked. Remove expired batch from shelf.`);
+        return;
+      }
+      toast.warning(`${product.name}: ${product.expired_qty} expired unit(s) must not be sold. Only ${sellable} sellable.`);
+    }
     const existingIndex = cart.findIndex((item) => item.product.id === product.id);
     const availableStock = product.branch_inventory?.[0]?.quantity || 0;
 
@@ -436,6 +475,7 @@ export default function POSTerminal() {
         })),
         subtotal,
         taxAmount,
+        taxLines: taxResult.lines,
         total,
         cashReceived: received,
         change: changeAmount,
@@ -576,6 +616,9 @@ export default function POSTerminal() {
                       )}
                       <div className={isList ? 'flex-1 min-w-0' : ''}>
                         <p className="font-semibold text-sm truncate">{product.name}</p>
+                        {product.expired_qty ? (
+                          <Badge variant="destructive" className="mt-1 text-[10px]">{product.expired_qty} expired</Badge>
+                        ) : null}
                         <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
                       </div>
                       <div className={`flex items-center justify-between gap-3 ${isList ? '' : 'mt-2'}`}>
