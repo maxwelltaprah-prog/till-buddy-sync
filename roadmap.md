@@ -1,2 +1,2 @@
-- [ ] Add admin branch selection to Sales and Profit Reports without changing the assigned POS branch.
-- [ ] Verify branch filtering and report switching.
+- [x] Add admin branch selection to Sales and Profit Reports without changing the assigned POS branch.
+- [x] Verify branch filtering and report switching with the signed-in admin, both branches and all branches; scope tests pass.
