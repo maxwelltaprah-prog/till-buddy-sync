@@ -19,6 +19,7 @@ export interface Branch {
   email?: string;
   tax_rate: number;
   is_active: boolean;
+  location_type?: string;
   operating_hours: {
     open: string;
     close: string;
