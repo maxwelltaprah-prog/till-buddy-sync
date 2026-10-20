@@ -59,6 +59,7 @@ export default function Branches() {
     phone: '',
     email: '',
     tax_rate: 0,
+    location_type: 'sales_point',
     is_active: true,
   });
 
@@ -101,6 +102,7 @@ export default function Branches() {
       phone: '',
       email: '',
       tax_rate: 0,
+      location_type: 'sales_point',
       is_active: true,
     });
     setEditingBranch(null);
@@ -115,6 +117,7 @@ export default function Branches() {
       phone: branch.phone || '',
       email: branch.email || '',
       tax_rate: branch.tax_rate,
+      location_type: (branch as any).location_type || 'sales_point',
       is_active: branch.is_active,
     });
     setShowDialog(true);
@@ -269,6 +272,14 @@ export default function Branches() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="location_type">Location Type</Label>
+                    <select id="location_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={formData.location_type} onChange={(e) => setFormData({ ...formData, location_type: e.target.value })}>
+                      <option value="sales_point">Sales Point</option>
+                      <option value="warehouse">Warehouse</option>
+                    </select>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="tax_rate">Tax Rate (%)</Label>
                     <Input
@@ -341,6 +352,7 @@ export default function Branches() {
               <TableRow>
                 <TableHead>Branch</TableHead>
                 <TableHead>Code</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead className="text-right">Tax Rate</TableHead>
                 <TableHead className="text-center">Status</TableHead>
@@ -369,6 +381,9 @@ export default function Branches() {
                     <Badge variant="outline" className="font-mono">
                       {branch.code}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{(branch as any).location_type === 'warehouse' ? 'Warehouse' : 'Sales Point'}</Badge>
                   </TableCell>
                   <TableCell>
                     {branch.phone || branch.email ? (
