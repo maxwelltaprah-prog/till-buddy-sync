@@ -1,3 +1,4 @@
+import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
@@ -53,6 +54,7 @@ import {
 import type { Product, Category, Supplier, UnitOfMeasure, BulkPricingTier } from '@/types/database';
 
 export default function Products() {
+  const { formatPrice } = useCurrency();
   const { hasRole } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -613,10 +615,10 @@ export default function Products() {
                   <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                   <TableCell>{product.category?.name || '—'}</TableCell>
                   <TableCell className="text-right font-medium">
-                    ${product.retail_price.toFixed(2)}
+                    {formatPrice(product.retail_price)}
                     {product.cost_price > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Cost: ${product.cost_price.toFixed(2)}
+                        Cost: {formatPrice(product.cost_price)}
                       </p>
                     )}
                   </TableCell>

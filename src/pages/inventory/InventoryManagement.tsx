@@ -1,3 +1,4 @@
+import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +56,7 @@ type BranchInventory = Tables<'branch_inventory'> & {
 type OperationType = 'receive' | 'adjustment' | 'transfer_out';
 
 export default function InventoryManagement() {
+  const { formatPrice } = useCurrency();
   const { branch, hasPermission } = useAuth();
   
   const [inventory, setInventory] = useState<BranchInventory[]>([]);
@@ -275,7 +277,7 @@ export default function InventoryManagement() {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatPrice(stats.totalValue)}</div>
           </CardContent>
         </Card>
       </div>
@@ -350,7 +352,7 @@ export default function InventoryManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        ${((item.quantity || 0) * item.product.retail_price).toFixed(2)}
+                        {formatPrice(((item.quantity || 0) * item.product.retail_price))}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 items-center">
