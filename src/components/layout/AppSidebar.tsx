@@ -37,6 +37,11 @@ import {
   ChevronUp,
   Grid3X3,
   ClipboardList,
+  ArrowLeftRight,
+  CalendarClock,
+  Upload,
+  TrendingUp,
+  Percent,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -87,6 +92,9 @@ const inventoryNavItems: NavItem[] = [
     icon: ClipboardList,
     roles: ['admin', 'stock_manager'],
   },
+  { title: 'Stock Transfers', url: '/stock-transfers', icon: ArrowLeftRight, roles: ['admin', 'stock_manager'] },
+  { title: 'Expiry Ageing', url: '/expiry', icon: CalendarClock, roles: ['admin', 'stock_manager', 'branch_supervisor'] },
+  { title: 'Bulk Import', url: '/bulk-import', icon: Upload, roles: ['admin', 'stock_manager'] },
 ];
 
 const operationsNavItems: NavItem[] = [
@@ -123,6 +131,8 @@ const adminNavItems: NavItem[] = [
     icon: BarChart3,
     roles: ['admin', 'branch_supervisor'],
   },
+  { title: 'Profit Report', url: '/profit', icon: TrendingUp, roles: ['admin', 'branch_supervisor'] },
+  { title: 'Tax Settings', url: '/tax-settings', icon: Percent, roles: ['admin'] },
   {
     title: 'Shop Settings',
     url: '/shop-settings',

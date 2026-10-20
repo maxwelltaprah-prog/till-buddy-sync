@@ -24,6 +24,11 @@ import Suppliers from "./pages/operations/Suppliers";
 import Returns from "./pages/operations/Returns";
 import SalesReports from "./pages/reports/SalesReports";
 import NotFound from "./pages/NotFound";
+import ProfitReport from "./pages/reports/ProfitReport";
+import TaxSettings from "./pages/admin/TaxSettings";
+import ExpiryAgeing from "./pages/inventory/ExpiryAgeing";
+import StockTransfers from "./pages/inventory/StockTransfers";
+import BulkImport from "./pages/admin/BulkImport";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +64,11 @@ const App = () => (
                   <Route path="/suppliers" element={<Suppliers />} />
                   <Route path="/returns" element={<Returns />} />
                   <Route path="/reports" element={<SalesReports />} />
+                  <Route path="/profit" element={<ProfitReport />} />
+                  <Route path="/tax-settings" element={<TaxSettings />} />
+                  <Route path="/expiry" element={<ExpiryAgeing />} />
+                  <Route path="/stock-transfers" element={<StockTransfers />} />
+                  <Route path="/bulk-import" element={<BulkImport />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
