@@ -34,13 +34,19 @@ import {
   Printer,
   Receipt,
   Barcode,
+  LayoutGrid,
+  List,
+  Grid3X3,
 } from 'lucide-react';
 import type { Product, CartItem, BulkPricingTier } from '@/types/database';
 import { generateReceiptPDF, printThermalReceipt, type ReceiptData, type ShopBranding } from '@/lib/receiptGenerator';
 import { BarcodeScanner, useBarcodeKeyboardScanner } from '@/components/pos/BarcodeScanner';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
+import { useTaxComponents } from '@/hooks/useTaxComponents';
+import { calculateTaxes } from '@/lib/tax';
 
 interface ProductWithInventory extends Product {
-  branch_inventory: { quantity: number }[];
+  branch_inventory: { quantity: number; is_available?: boolean }[];
 }
 
 export default function POSTerminal() {
@@ -64,13 +70,16 @@ export default function POSTerminal() {
   const [lastSaleData, setLastSaleData] = useState<ReceiptData | null>(null);
   const [showReceiptDialog, setShowReceiptDialog] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-
-  // Calculated values
-  const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-  const taxAmount = cart.reduce(
-    (sum, item) => sum + (item.total * (item.product.tax_rate / 100)),
-    0
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(
+    () => (localStorage.getItem('pos_view_mode') as 'grid' | 'list' | 'compact') || 'grid'
   );
+  const changeView = (m: 'grid' | 'list' | 'compact') => { setViewMode(m); localStorage.setItem('pos_view_mode', m); };
+  const { components: taxComponents } = useTaxComponents();
+
+  // Calculated values (Ghana decoupled tax on taxable subtotal)
+  const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+  const taxResult = calculateTaxes(subtotal, taxComponents);
+  const taxAmount = taxResult.total;
   const total = subtotal + taxAmount;
   const changeAmount = Math.max(0, parseFloat(cashReceived || '0') - total);
 
@@ -105,7 +114,7 @@ export default function POSTerminal() {
           *,
           category:categories(*),
           bulk_pricing_tiers(*),
-          branch_inventory(quantity)
+          branch_inventory(quantity, is_available)
         `)
         .eq('is_active', true);
 
@@ -127,6 +136,7 @@ export default function POSTerminal() {
 
   // Search products
   const filteredProducts = products.filter((product) => {
+    if (product.branch_inventory?.[0]?.is_available === false) return false;
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -135,6 +145,7 @@ export default function POSTerminal() {
       product.barcode?.toLowerCase().includes(query)
     );
   });
+  const productPage = usePagination(filteredProducts, 30);
 
   // Get effective price based on quantity and pricing preference
   const getEffectivePrice = (product: Product, quantity: number, forceBulk: boolean = false): { price: number; isBulk: boolean } => {
@@ -352,7 +363,9 @@ export default function POSTerminal() {
         unit_price: item.unit_price,
         is_bulk_price: item.is_bulk_price,
         discount_amount: item.discount_amount,
-        tax_amount: item.total * ((item.product.tax_rate || 0) / 100),
+        tax_amount: calculateTaxes(item.total, taxComponents).total,
+        tax_breakdown: calculateTaxes(item.total, taxComponents).lines as any,
+        cost_price: Number(item.product.cost_price) || 0,
         total: item.total,
       }));
 
@@ -502,6 +515,13 @@ export default function POSTerminal() {
               <Barcode className="h-5 w-5 mr-2" />
               Scan
             </Button>
+            <div className="flex rounded-xl border bg-card p-1 gap-1">
+              {([['grid', LayoutGrid], ['list', List], ['compact', Grid3X3]] as const).map(([m, Icon]) => (
+                <Button key={m} variant={viewMode === m ? 'default' : 'ghost'} size="icon" className="h-12 w-12" title={m} onClick={() => changeView(m)}>
+                  <Icon className="h-5 w-5" />
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -519,16 +539,17 @@ export default function POSTerminal() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredProducts.map((product) => {
+            <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4' : viewMode === 'compact' ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2' : 'flex flex-col gap-2'}>
+              {productPage.pageItems.map((product) => {
                 const stock = product.branch_inventory?.[0]?.quantity || 0;
                 const inCart = cart.find((item) => item.product.id === product.id);
                 const bulkInfo = getBulkPriceInfo(product);
+                const isList = viewMode === 'list';
                 
                 return (
                   <div
                     key={product.id}
-                    className="p-4 rounded-xl border-2 border-transparent bg-card text-left hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 relative group"
+                    className={`${viewMode === 'grid' ? 'p-4' : 'p-2'} rounded-xl border-2 border-transparent bg-card text-left hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 relative group ${isList ? 'flex items-center gap-3' : ''}`}
                   >
                     {inCart && (
                       <Badge className="absolute -top-2 -right-2 h-7 w-7 flex items-center justify-center p-0 rounded-full bg-primary shadow-lg animate-scale-in">
@@ -538,23 +559,27 @@ export default function POSTerminal() {
                     <button
                       onClick={() => quickAddToCart(product)}
                       disabled={stock <= 0}
-                      className="w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`w-full text-left disabled:opacity-50 disabled:cursor-not-allowed ${isList ? 'flex items-center gap-3' : ''}`}
                     >
-                      <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        {product.image_url ? (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <Package className="h-10 w-10 text-muted-foreground/50" />
-                        )}
+                      {viewMode === 'grid' && (
+                        <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                          {product.image_url ? (
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <Package className="h-10 w-10 text-muted-foreground/50" />
+                          )}
+                        </div>
+                      )}
+                      <div className={isList ? 'flex-1 min-w-0' : ''}>
+                        <p className="font-semibold text-sm truncate">{product.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
                       </div>
-                      <p className="font-semibold text-sm truncate">{product.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{product.sku}</p>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="font-bold text-lg text-primary">{formatPrice(product.retail_price)}</span>
+                      <div className={`flex items-center justify-between gap-3 ${isList ? '' : 'mt-2'}`}>
+                        <span className={`font-bold text-primary ${viewMode === 'grid' ? 'text-lg' : 'text-sm'}`}>{formatPrice(product.retail_price)}</span>
                         <span className={`text-xs font-medium px-2 py-1 rounded-full ${stock <= product.min_stock_level ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'}`}>
                           {stock}
                         </span>
@@ -564,7 +589,7 @@ export default function POSTerminal() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        className="w-full mt-3 text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 border-0"
+                        className={`${isList ? 'shrink-0' : 'w-full mt-2'} text-xs font-medium bg-gradient-to-r from-primary/10 to-accent/10 hover:from-primary/20 hover:to-accent/20 border-0`}
                         onClick={() => openAddToCartDialog(product)}
                         disabled={stock <= 0}
                       >
@@ -577,6 +602,7 @@ export default function POSTerminal() {
             </div>
           )}
         </ScrollArea>
+        <PaginationBar {...productPage} />
       </div>
 
       {/* Cart panel */}
@@ -687,8 +713,14 @@ export default function POSTerminal() {
               <span className="text-muted-foreground">Subtotal</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
+            {taxResult.lines.map((l) => (
+              <div key={l.code} className="flex justify-between">
+                <span className="text-muted-foreground">{l.code} ({l.rate}%)</span>
+                <span>{formatPrice(l.amount)}</span>
+              </div>
+            ))}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax</span>
+              <span className="text-muted-foreground">Total Tax ({taxResult.effectiveRate}%)</span>
               <span>{formatPrice(taxAmount)}</span>
             </div>
             <Separator />

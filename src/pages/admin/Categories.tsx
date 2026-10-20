@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,7 @@ export default function Categories() {
     if (!searchQuery) return true;
     return category.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
+  const pg = usePagination(filteredCategories);
 
   // Build category tree
   const getCategoryTree = () => {
@@ -339,7 +341,7 @@ export default function Categories() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCategories.map((category) => {
+              {pg.pageItems.map((category) => {
                 const isChild = !!category.parent_id;
 
                 return (
@@ -403,6 +405,7 @@ export default function Categories() {
               })}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </div>
       )}
     </div>

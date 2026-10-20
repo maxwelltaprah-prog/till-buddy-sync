@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,6 +77,7 @@ export default function Products() {
     unit: 'pcs' as UnitOfMeasure,
     retail_price: 0,
     cost_price: 0,
+    shelf_life_days: '' as number | '',
     tax_rate: 0,
     is_bulk_item: false,
     min_stock_level: 10,
@@ -123,6 +125,7 @@ export default function Products() {
       product.barcode?.toLowerCase().includes(query)
     );
   });
+  const pg = usePagination(filteredProducts);
 
   const resetForm = () => {
     setFormData({
@@ -135,6 +138,7 @@ export default function Products() {
       unit: 'pcs',
       retail_price: 0,
       cost_price: 0,
+      shelf_life_days: '' as number | '',
       tax_rate: 0,
       is_bulk_item: false,
       min_stock_level: 10,
@@ -156,6 +160,7 @@ export default function Products() {
       unit: product.unit,
       retail_price: product.retail_price,
       cost_price: product.cost_price,
+      shelf_life_days: ((product as any).shelf_life_days ?? '') as number | '',
       tax_rate: product.tax_rate,
       is_bulk_item: product.is_bulk_item,
       min_stock_level: product.min_stock_level,
@@ -179,6 +184,7 @@ export default function Products() {
         supplier_id: formData.supplier_id || null,
         barcode: formData.barcode || null,
         description: formData.description || null,
+        shelf_life_days: formData.shelf_life_days === '' ? null : Number(formData.shelf_life_days),
       };
 
       if (editingProduct) {
@@ -461,6 +467,11 @@ export default function Products() {
                         onChange={(e) => setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="shelf_life_days">Shelf Life (days)</Label>
+                      <Input id="shelf_life_days" type="number" min="0" value={formData.shelf_life_days}
+                        onChange={(e) => setFormData({ ...formData, shelf_life_days: e.target.value === '' ? '' : parseInt(e.target.value) })} />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
@@ -576,7 +587,7 @@ export default function Products() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
+              {pg.pageItems.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -670,6 +681,7 @@ export default function Products() {
               ))}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </div>
       )}
 

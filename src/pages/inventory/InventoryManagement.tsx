@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +111,7 @@ export default function InventoryManagement() {
     }
     return true;
   });
+  const pg = usePagination(filteredInventory);
 
   const handleStockOperation = async () => {
     if (!selectedItem || !quantity || parseInt(quantity) <= 0) {
@@ -330,7 +332,7 @@ export default function InventoryManagement() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInventory.map((item) => {
+                pg.pageItems.map((item) => {
                   const status = getStockStatus(item);
                   const StatusIcon = status.icon;
                   return (
@@ -351,7 +353,21 @@ export default function InventoryManagement() {
                         ${((item.quantity || 0) * item.product.retail_price).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 items-center">
+                          <Button
+                            size="sm"
+                            variant={(item as any).is_available === false ? 'secondary' : 'ghost'}
+                            title="Enable or disable selling this product at this sales point"
+                            onClick={async () => {
+                              const next = (item as any).is_available === false;
+                              const { error } = await supabase.from('branch_inventory').update({ is_available: next }).eq('id', item.id);
+                              if (error) return toast.error(error.message);
+                              toast.success(next ? 'Product enabled at this location' : 'Product hidden from POS at this location');
+                              fetchInventory();
+                            }}
+                          >
+                            {(item as any).is_available === false ? 'Disabled' : 'On sale'}
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -376,6 +392,7 @@ export default function InventoryManagement() {
               )}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </ScrollArea>
       </Card>
 

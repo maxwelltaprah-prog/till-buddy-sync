@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,6 +110,7 @@ export default function StockMovements() {
 
     return true;
   });
+  const pg = usePagination(filteredMovements);
 
   // Calculate summary stats
   const stats = {
@@ -244,7 +246,7 @@ export default function StockMovements() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMovements.map((movement) => {
+                pg.pageItems.map((movement) => {
                   const Icon = OPERATION_ICONS[movement.operation_type];
                   const isPositive = movement.quantity > 0;
                   
@@ -285,6 +287,7 @@ export default function StockMovements() {
               )}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </ScrollArea>
       </Card>
     </div>
