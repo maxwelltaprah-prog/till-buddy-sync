@@ -41,6 +41,22 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+
+function resizeImage(file: File, max = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(img.src);
+      resolve(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
 import {
   Plus,
   Loader2,
@@ -80,6 +96,7 @@ export default function Products() {
     retail_price: 0,
     cost_price: 0,
     shelf_life_days: '' as number | '',
+    image_url: '',
     tax_rate: 0,
     is_bulk_item: false,
     min_stock_level: 10,
@@ -141,6 +158,7 @@ export default function Products() {
       retail_price: 0,
       cost_price: 0,
       shelf_life_days: '' as number | '',
+      image_url: '',
       tax_rate: 0,
       is_bulk_item: false,
       min_stock_level: 10,
@@ -163,6 +181,7 @@ export default function Products() {
       retail_price: product.retail_price,
       cost_price: product.cost_price,
       shelf_life_days: ((product as any).shelf_life_days ?? '') as number | '',
+      image_url: product.image_url || '',
       tax_rate: product.tax_rate,
       is_bulk_item: product.is_bulk_item,
       min_stock_level: product.min_stock_level,
@@ -186,6 +205,7 @@ export default function Products() {
         supplier_id: formData.supplier_id || null,
         barcode: formData.barcode || null,
         description: formData.description || null,
+        image_url: formData.image_url || null,
         shelf_life_days: formData.shelf_life_days === '' ? null : Number(formData.shelf_life_days),
       };
 
@@ -365,6 +385,24 @@ export default function Products() {
                         onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                         placeholder="1234567890123"
                       />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Product Image</Label>
+                    <div className="flex items-center gap-3">
+                      <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center overflow-hidden border">
+                        {formData.image_url ? <img src={formData.image_url} alt="Product" className="h-full w-full object-cover" /> : <Package className="h-8 w-8 text-muted-foreground" />}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Input type="file" accept="image/*" className="w-60" onChange={async (e) => {
+                          const file = e.target.files?.[0]; if (!file) return;
+                          if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB'); return; }
+                          try { setFormData((f) => ({ ...f, image_url: '' })); const url = await resizeImage(file); setFormData((f) => ({ ...f, image_url: url })); }
+                          catch { toast.error('Could not read image'); }
+                        }} />
+                        {formData.image_url && <Button type="button" variant="outline" size="sm" onClick={() => setFormData({ ...formData, image_url: '' })}>Remove image</Button>}
+                      </div>
                     </div>
                   </div>
 
