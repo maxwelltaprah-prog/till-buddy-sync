@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +111,7 @@ export default function InventoryManagement() {
     }
     return true;
   });
+  const pg = usePagination(filteredInventory);
 
   const handleStockOperation = async () => {
     if (!selectedItem || !quantity || parseInt(quantity) <= 0) {
@@ -330,7 +332,7 @@ export default function InventoryManagement() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredInventory.map((item) => {
+                pg.pageItems.map((item) => {
                   const status = getStockStatus(item);
                   const StatusIcon = status.icon;
                   return (
@@ -376,6 +378,7 @@ export default function InventoryManagement() {
               )}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </ScrollArea>
       </Card>
 

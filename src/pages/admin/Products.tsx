@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,6 +124,7 @@ export default function Products() {
       product.barcode?.toLowerCase().includes(query)
     );
   });
+  const pg = usePagination(filteredProducts);
 
   const resetForm = () => {
     setFormData({
@@ -576,7 +578,7 @@ export default function Products() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
+              {pg.pageItems.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -670,6 +672,7 @@ export default function Products() {
               ))}
             </TableBody>
           </Table>
+          <PaginationBar {...pg} />
         </div>
       )}
 
