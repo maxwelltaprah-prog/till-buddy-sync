@@ -353,7 +353,21 @@ export default function InventoryManagement() {
                         ${((item.quantity || 0) * item.product.retail_price).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 items-center">
+                          <Button
+                            size="sm"
+                            variant={(item as any).is_available === false ? 'secondary' : 'ghost'}
+                            title="Enable or disable selling this product at this sales point"
+                            onClick={async () => {
+                              const next = (item as any).is_available === false;
+                              const { error } = await supabase.from('branch_inventory').update({ is_available: next }).eq('id', item.id);
+                              if (error) return toast.error(error.message);
+                              toast.success(next ? 'Product enabled at this location' : 'Product hidden from POS at this location');
+                              fetchInventory();
+                            }}
+                          >
+                            {(item as any).is_available === false ? 'Disabled' : 'On sale'}
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
