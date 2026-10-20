@@ -29,6 +29,7 @@ interface ShopSettings {
   receipt_header: string;
   receipt_footer: string;
   currency_symbol: string;
+  currency_code: string;
   primary_color: string;
   phone: string;
   email: string;
@@ -42,6 +43,7 @@ const defaultSettings: ShopSettings = {
   receipt_header: 'Thank you for shopping with us!',
   receipt_footer: 'Visit us again soon!',
   currency_symbol: 'GH₵',
+  currency_code: 'GHS',
   primary_color: '#7c3aed',
   phone: '',
   email: '',
@@ -230,6 +232,19 @@ export default function ShopSettings() {
                   maxLength={5}
                   className="w-24"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency_code">Currency Code</Label>
+                <Input
+                  id="currency_code"
+                  value={settings.currency_code || ''}
+                  onChange={(e) => setSettings({ ...settings, currency_code: e.target.value.toUpperCase() })}
+                  placeholder="GHS"
+                  maxLength={3}
+                  className="w-24"
+                />
+                <p className="text-xs text-muted-foreground">Shown on receipts and reports, e.g. "All amounts in GHS".</p>
               </div>
 
               <Separator />

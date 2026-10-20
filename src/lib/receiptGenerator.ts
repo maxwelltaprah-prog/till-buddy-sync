@@ -7,6 +7,7 @@ export interface ShopBranding {
   receiptHeader: string;
   receiptFooter: string;
   currencySymbol: string;
+  currencyCode?: string;
   primaryColor?: string;
   phone?: string;
   email?: string;
@@ -123,6 +124,7 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   lines.push(`${'Total Tax:'.padEnd(30)}${formatPrice(data.taxAmount, symbol).padStart(10)}`);
   lines.push(separator);
   lines.push(`${'TOTAL:'.padEnd(30)}${formatPrice(data.total, symbol).padStart(10)}`);
+  lines.push(`All amounts in ${data.branding?.currencyCode || 'GHS'}`);
   lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
   lines.push(`${'Change:'.padEnd(30)}${formatPrice(data.change, symbol).padStart(10)}`);
   
@@ -372,6 +374,7 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
         ${(data.taxLines || []).map((t) => `<div><span>${t.code} (${t.rate}%):</span><span>${formatPrice(t.amount, symbol)}</span></div>`).join('')}
         <div><span>Total Tax:</span><span>${formatPrice(data.taxAmount, symbol)}</span></div>
         <div class="grand-total"><span>TOTAL:</span><span>${formatPrice(data.total, symbol)}</span></div>
+        <div style="font-size:10px;text-align:center">All amounts in ${data.branding?.currencyCode || 'GHS'}</div>
         <div><span>Cash:</span><span>${formatPrice(data.cashReceived, symbol)}</span></div>
         <div><span>Change:</span><span>${formatPrice(data.change, symbol)}</span></div>
       </div>

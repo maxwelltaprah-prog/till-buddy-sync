@@ -55,7 +55,7 @@ type DateRange = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
 
 export default function SalesReports() {
   const { branch } = useAuth();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, code } = useCurrency();
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -226,7 +226,7 @@ export default function SalesReports() {
         <div>
           <h1 className="text-2xl font-bold">Sales Reports</h1>
           <p className="text-muted-foreground">
-            Analyze sales performance for {branch.name}
+            Analyze sales performance for {branch.name} · All amounts in {code}
           </p>
         </div>
         <div className="flex gap-2">

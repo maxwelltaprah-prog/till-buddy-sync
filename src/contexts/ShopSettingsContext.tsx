@@ -8,6 +8,7 @@ export interface ShopSettings {
   receipt_header: string;
   receipt_footer: string;
   currency_symbol: string;
+  currency_code: string;
   primary_color: string;
   phone: string;
   email: string;
@@ -21,6 +22,7 @@ const defaultSettings: ShopSettings = {
   receipt_header: 'Thank you for shopping with us!',
   receipt_footer: 'Visit us again soon!',
   currency_symbol: 'GH₵',
+  currency_code: 'GHS',
   primary_color: '#7c3aed',
   phone: '',
   email: '',

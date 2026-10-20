@@ -9,7 +9,7 @@ import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { format } from 'date-fns';
 
 export default function ProfitReport() {
-  const { formatPrice } = useCurrency();
+  const { formatPrice, code } = useCurrency();
   const today = format(new Date(), 'yyyy-MM-dd');
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
@@ -45,7 +45,7 @@ export default function ProfitReport() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Profit Report</h1>
-          <p className="text-muted-foreground">Revenue (before tax) minus cost of goods sold.</p>
+          <p className="text-muted-foreground">Revenue (before tax) minus cost of goods sold. All amounts in {code}.</p>
         </div>
         <div className="flex gap-3">
           <div className="space-y-1"><Label>From</Label><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
