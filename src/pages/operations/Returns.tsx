@@ -1,3 +1,4 @@
+import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +59,7 @@ interface ReturnItem {
 }
 
 export default function Returns() {
+  const { formatPrice } = useCurrency();
   const { user, branch, roles } = useAuth();
   
   const [receiptNumber, setReceiptNumber] = useState('');
@@ -339,7 +341,7 @@ export default function Returns() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Original Total: ${foundSale.total.toFixed(2)}
+                    Original Total: {formatPrice(foundSale.total)}
                   </p>
                 </div>
 
@@ -382,7 +384,7 @@ export default function Returns() {
                               />
                             </TableCell>
                             <TableCell className="text-right font-mono">
-                              ${item.refundAmount.toFixed(2)}
+                              {formatPrice(item.refundAmount)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -417,7 +419,7 @@ export default function Returns() {
                 <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Refund</p>
-                    <p className="text-2xl font-bold">${totalRefund.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">{formatPrice(totalRefund)}</p>
                   </div>
                   <Button
                     onClick={() => setShowConfirmDialog(true)}
@@ -483,7 +485,7 @@ export default function Returns() {
                           {format(new Date(ret.created_at!), 'MMM d, HH:mm')}
                         </span>
                         <span className="font-bold text-destructive">
-                          -${ret.total_refund.toFixed(2)}
+                          -{formatPrice(ret.total_refund)}
                         </span>
                       </div>
                     </div>
@@ -513,12 +515,12 @@ export default function Returns() {
                 .map(item => (
                   <div key={item.saleItemId} className="flex justify-between text-sm">
                     <span>{item.productName} × {item.returnQty}</span>
-                    <span className="font-mono">${item.refundAmount.toFixed(2)}</span>
+                    <span className="font-mono">{formatPrice(item.refundAmount)}</span>
                   </div>
                 ))}
               <div className="border-t mt-2 pt-2 flex justify-between font-bold">
                 <span>Total Refund:</span>
-                <span className="text-destructive">${totalRefund.toFixed(2)}</span>
+                <span className="text-destructive">{formatPrice(totalRefund)}</span>
               </div>
             </div>
 

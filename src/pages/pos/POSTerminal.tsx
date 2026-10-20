@@ -454,6 +454,7 @@ export default function POSTerminal() {
         receiptHeader: shopSettings.receipt_header,
         receiptFooter: shopSettings.receipt_footer,
         currencySymbol: shopSettings.currency_symbol,
+        currencyCode: shopSettings.currency_code,
         primaryColor: shopSettings.primary_color,
         phone: shopSettings.phone,
         email: shopSettings.email,
