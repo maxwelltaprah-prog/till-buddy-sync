@@ -44,6 +44,7 @@ import { BarcodeScanner, useBarcodeKeyboardScanner } from '@/components/pos/Barc
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useTaxComponents } from '@/hooks/useTaxComponents';
 import { calculateTaxes } from '@/lib/tax';
+import { receiptCashierName } from '@/lib/cashier';
 
 interface ProductWithInventory extends Product {
   branch_inventory: { quantity: number; is_available?: boolean }[];
@@ -51,7 +52,7 @@ interface ProductWithInventory extends Product {
 }
 
 export default function POSTerminal() {
-  const { user, branch } = useAuth();
+  const { user, branch, profile } = useAuth();
   const { formatPrice, symbol } = useCurrency();
   const { settings: shopSettings } = useShopSettings();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -466,7 +467,7 @@ export default function POSTerminal() {
         date: new Date(),
         branchName: branch.name,
         branchAddress: branch.address || '',
-        cashierName: user?.email || 'Cashier',
+        cashierName: receiptCashierName(profile?.full_name),
         items: cart.map(item => ({
           name: item.product.name,
           quantity: item.quantity,

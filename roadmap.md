@@ -1,3 +1,6 @@
 - [x] Add admin branch selection to Sales and Profit Reports without changing the assigned POS branch.
 - [x] Verify branch filtering and report switching with the signed-in admin, both branches and all branches; scope tests pass.
 - [x] Fix receipt branding placeholders and cedi encoding; verified shop name, logo, GH₵ amounts and tax lines visually using an existing completed sale without creating a new sale.
+- [ ] Print cashier full name rather than email on receipts.
+- [ ] Add isolated store accounts with platform-owner access and store-admin staff creation.
+- [ ] Verify tenant isolation, owner store switching, account creation and existing POS access.
