@@ -177,6 +177,7 @@ const printViaWindow = (text: string) => {
     printWindow.document.write(`
       <html>
         <head>
+          <meta charset="UTF-8" />
           <title>Receipt</title>
           <style>
             body {
@@ -196,7 +197,7 @@ const printViaWindow = (text: string) => {
           </style>
         </head>
         <body>
-          <pre>${text}</pre>
+          <pre>${escapeHTML(text)}</pre>
         </body>
       </html>
     `);
@@ -207,6 +208,11 @@ const printViaWindow = (text: string) => {
   }
 };
 
+// Keep saved branding and product text as text, not executable print-window HTML.
+const escapeHTML = (value: string): string => value.replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[character] || character));
+
 // Generate PDF receipt
 export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
   const symbol = data.branding?.currencySymbol || 'GH₵';
@@ -214,7 +220,8 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
   const tagline = data.branding?.tagline || '';
   const headerMsg = data.branding?.receiptHeader || 'Thank you for your purchase!';
   const footerMsg = data.branding?.receiptFooter || 'Please come again';
-  const primaryColor = data.branding?.primaryColor || '#7c3aed';
+  const savedColor = data.branding?.primaryColor;
+  const primaryColor = savedColor && /^#[0-9a-f]{6}$/i.test(savedColor) ? savedColor : '#7c3aed';
   const logoUrl = data.branding?.logoUrl;
   const phone = data.branding?.phone;
   const email = data.branding?.email;
@@ -225,7 +232,8 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Receipt ${data.receiptNumber}</title>
+      <meta charset="UTF-8" />
+      <title>Receipt ${escapeHTML(data.receiptNumber)}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -328,21 +336,21 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
     </head>
     <body>
       <div class="header">
-        \${logoUrl ? \`<img src="\${logoUrl}" alt="Logo" class="logo" />\` : ''}
-        <h1>\${shopName}</h1>
-        \${tagline ? \`<p class="tagline">\${tagline}</p>\` : ''}
-        \${address ? \`<p>\${address}</p>\` : ''}
-        \${phone ? \`<p>Tel: \${phone}</p>\` : ''}
-        \${email ? \`<p>\${email}</p>\` : ''}
-        <p>\${data.branchName}</p>
-        \${data.branchAddress ? \`<p>\${data.branchAddress}</p>\` : ''}
-        <p class="header-message">\${headerMsg}</p>
+        ${logoUrl && /^(https?:\/\/|data:image\/)/i.test(logoUrl) ? `<img src="${escapeHTML(logoUrl)}" alt="Logo" class="logo" />` : ''}
+        <h1>${escapeHTML(shopName)}</h1>
+        ${tagline ? `<p class="tagline">${escapeHTML(tagline)}</p>` : ''}
+        ${address ? `<p>${escapeHTML(address)}</p>` : ''}
+        ${phone ? `<p>Tel: ${escapeHTML(phone)}</p>` : ''}
+        ${email ? `<p>${escapeHTML(email)}</p>` : ''}
+        <p>${escapeHTML(data.branchName)}</p>
+        ${data.branchAddress ? `<p>${escapeHTML(data.branchAddress)}</p>` : ''}
+        <p class="header-message">${escapeHTML(headerMsg)}</p>
       </div>
       
       <div class="info">
-        <div><span>Receipt:</span><span>${data.receiptNumber}</span></div>
+        <div><span>Receipt:</span><span>${escapeHTML(data.receiptNumber)}</span></div>
         <div><span>Date:</span><span>${formatDate(data.date)}</span></div>
-        <div><span>Cashier:</span><span>${data.cashierName}</span></div>
+        <div><span>Cashier:</span><span>${escapeHTML(data.cashierName)}</span></div>
       </div>
       
       <div class="items">
@@ -358,11 +366,11 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
             ${data.items.map(item => `
               <tr>
                 <td>
-                  ${item.name}
-                  ${item.isBulk ? `<div class="bulk">@ ${formatPrice(item.unitPrice, symbol)} (Bulk)</div>` : ''}
+                  ${escapeHTML(item.name)}
+                  ${item.isBulk ? `<div class="bulk">@ ${escapeHTML(formatPrice(item.unitPrice, symbol))} (Bulk)</div>` : ''}
                 </td>
                 <td>${item.quantity}</td>
-                <td>${formatPrice(item.total, symbol)}</td>
+                <td>${escapeHTML(formatPrice(item.total, symbol))}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -370,33 +378,40 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
       </div>
       
       <div class="totals">
-        <div><span>Subtotal:</span><span>${formatPrice(data.subtotal, symbol)}</span></div>
-        ${(data.taxLines || []).map((t) => `<div><span>${t.code} (${t.rate}%):</span><span>${formatPrice(t.amount, symbol)}</span></div>`).join('')}
-        <div><span>Total Tax:</span><span>${formatPrice(data.taxAmount, symbol)}</span></div>
-        <div class="grand-total"><span>TOTAL:</span><span>${formatPrice(data.total, symbol)}</span></div>
-        <div style="font-size:10px;text-align:center">All amounts in ${data.branding?.currencyCode || 'GHS'}</div>
-        <div><span>Cash:</span><span>${formatPrice(data.cashReceived, symbol)}</span></div>
-        <div><span>Change:</span><span>${formatPrice(data.change, symbol)}</span></div>
+        <div><span>Subtotal:</span><span>${escapeHTML(formatPrice(data.subtotal, symbol))}</span></div>
+        ${(data.taxLines || []).map((t) => `<div><span>${escapeHTML(t.code)} (${t.rate}%):</span><span>${escapeHTML(formatPrice(t.amount, symbol))}</span></div>`).join('')}
+        <div><span>Total Tax:</span><span>${escapeHTML(formatPrice(data.taxAmount, symbol))}</span></div>
+        <div class="grand-total"><span>TOTAL:</span><span>${escapeHTML(formatPrice(data.total, symbol))}</span></div>
+        <div style="font-size:10px;text-align:center">All amounts in ${escapeHTML(data.branding?.currencyCode || 'GHS')}</div>
+        <div><span>Cash:</span><span>${escapeHTML(formatPrice(data.cashReceived, symbol))}</span></div>
+        <div><span>Change:</span><span>${escapeHTML(formatPrice(data.change, symbol))}</span></div>
       </div>
       
       <div class="footer">
-        <p>${footerMsg}</p>
+        <p>${escapeHTML(footerMsg)}</p>
       </div>
     </body>
     </html>
   `;
 
   // Create blob and download
-  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   
   // Open in new window for printing/saving as PDF
   const printWindow = window.open(url, '_blank');
   if (printWindow) {
-    printWindow.onload = () => {
+    printWindow.onload = async () => {
+      await printWindow.document.fonts.ready;
+      await Promise.all(Array.from(printWindow.document.images).map(image =>
+        image.decode().catch(() => undefined)
+      ));
+      printWindow.focus();
       printWindow.print();
+      URL.revokeObjectURL(url);
     };
+  } else {
+    URL.revokeObjectURL(url);
+    throw new Error('Please allow pop-ups to print your receipt.');
   }
-  
-  URL.revokeObjectURL(url);
 };
