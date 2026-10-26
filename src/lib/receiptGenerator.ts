@@ -34,6 +34,8 @@ export interface ReceiptData {
   cashReceived: number;
   change: number;
   branding?: ShopBranding;
+  /** Present when the sale was made on credit. */
+  credit?: { customerName: string; dueDate: string; days: number };
 }
 
 // Format date for receipt
@@ -125,8 +127,14 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   lines.push(separator);
   lines.push(`${'TOTAL:'.padEnd(30)}${formatPrice(data.total, symbol).padStart(10)}`);
   lines.push(`All amounts in ${data.branding?.currencyCode || 'GHS'}`);
-  lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
-  lines.push(`${'Change:'.padEnd(30)}${formatPrice(data.change, symbol).padStart(10)}`);
+  if (data.credit) {
+    lines.push(`${'CREDIT SALE'.padEnd(40)}`);
+    lines.push(`Customer: ${data.credit.customerName}`);
+    lines.push(`Repay by: ${data.credit.dueDate} (${data.credit.days} days)`);
+  } else {
+    lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
+    lines.push(`${'Change:'.padEnd(30)}${formatPrice(data.change, symbol).padStart(10)}`);
+  }
   
   lines.push(separator);
   lines.push(center(footerMsg));
@@ -383,8 +391,12 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
         <div><span>Total Tax:</span><span>${escapeHTML(formatPrice(data.taxAmount, symbol))}</span></div>
         <div class="grand-total"><span>TOTAL:</span><span>${escapeHTML(formatPrice(data.total, symbol))}</span></div>
         <div style="font-size:10px;text-align:center">All amounts in ${escapeHTML(data.branding?.currencyCode || 'GHS')}</div>
+        ${data.credit ? `
+        <div><strong>CREDIT SALE</strong><span></span></div>
+        <div><span>Customer:</span><span>${escapeHTML(data.credit.customerName)}</span></div>
+        <div><span>Repay by:</span><span>${escapeHTML(data.credit.dueDate)} (${data.credit.days} days)</span></div>` : `
         <div><span>Cash:</span><span>${escapeHTML(formatPrice(data.cashReceived, symbol))}</span></div>
-        <div><span>Change:</span><span>${escapeHTML(formatPrice(data.change, symbol))}</span></div>
+        <div><span>Change:</span><span>${escapeHTML(formatPrice(data.change, symbol))}</span></div>`}
       </div>
       
       <div class="footer">

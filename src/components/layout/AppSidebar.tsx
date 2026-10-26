@@ -42,6 +42,7 @@ import {
   Upload,
   TrendingUp,
   Percent,
+  HandCoins,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -110,6 +111,7 @@ const operationsNavItems: NavItem[] = [
     icon: RotateCcw,
     roles: ['admin', 'cashier', 'branch_supervisor'],
   },
+  { title: 'Creditors', url: '/creditors', icon: HandCoins, roles: ['admin', 'cashier', 'branch_supervisor'] },
 ];
 
 const adminNavItems: NavItem[] = [

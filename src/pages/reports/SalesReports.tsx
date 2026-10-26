@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
 import { useReportBranch } from '@/hooks/useReportBranch';
+import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
+import { useState, useEffect, useRef } from 'react';
+import { Package } from 'lucide-react';
 import { ReportBranchSelector } from '@/components/ReportBranchSelector';
 import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,6 +63,7 @@ export default function SalesReports() {
   
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('today');
   const [startDate, setStartDate] = useState<Date>(startOfDay(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfDay(new Date()));
@@ -126,6 +129,7 @@ export default function SalesReports() {
     const currentRequest = ++requestId.current;
     try {
       setIsLoading(true);
+      setLoadError(false);
       setSales([]);
       let query = supabase
         .from('sales')
@@ -145,7 +149,7 @@ export default function SalesReports() {
     } catch (error) {
       if (currentRequest !== requestId.current) return;
       console.error('Error fetching sales:', error);
-      toast.error('Failed to load sales data');
+      setLoadError(true);
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
@@ -310,9 +314,12 @@ export default function SalesReports() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="space-y-4">
+          <CardsLoading />
+          <div className="rounded-lg border bg-card"><Table><TableBody><TableLoadingRows cols={6} /></TableBody></Table></div>
         </div>
+      ) : loadError ? (
+        <Card><ErrorState title="Couldn't load sales" onRetry={fetchSales} /></Card>
       ) : (
         <>
           {/* Stats cards */}
@@ -413,11 +420,9 @@ export default function SalesReports() {
                     </TableHeader>
                     <TableBody>
                       {topProducts.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center text-muted-foreground">
-                            No sales data
-                          </TableCell>
-                        </TableRow>
+                        <TableStateRow cols={3}>
+                          <EmptyState icon={Package} title="No products sold yet" description="Best sellers appear here once sales are made in this period." />
+                        </TableStateRow>
                       ) : (
                         topProducts.map((product, index) => (
                           <TableRow key={index}>
@@ -451,11 +456,9 @@ export default function SalesReports() {
                     </TableHeader>
                     <TableBody>
                       {sales.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
-                            No transactions found
-                          </TableCell>
-                        </TableRow>
+                        <TableStateRow cols={6}>
+                          <EmptyState icon={Receipt} title="No transactions in this period" description="Pick a wider date range or another branch to see sales." />
+                        </TableStateRow>
                       ) : (
                         sales.map((sale) => (
                           <TableRow key={sale.id}>

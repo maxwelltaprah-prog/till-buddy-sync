@@ -1,3 +1,5 @@
+import { Boxes as BoxesIcon } from 'lucide-react';
+import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +60,7 @@ type OperationType = 'receive' | 'adjustment' | 'transfer_out';
 export default function InventoryManagement() {
   const { formatPrice } = useCurrency();
   const { branch, hasPermission } = useAuth();
+  const [loadError, setLoadError] = useState(false);
   
   const [inventory, setInventory] = useState<BranchInventory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,6 +82,7 @@ export default function InventoryManagement() {
   const fetchInventory = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const { data, error } = await supabase
         .from('branch_inventory')
         .select(`
@@ -92,7 +96,7 @@ export default function InventoryManagement() {
       setInventory(data as BranchInventory[]);
     } catch (error) {
       console.error('Error fetching inventory:', error);
-      toast.error('Failed to load inventory');
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -322,17 +326,17 @@ export default function InventoryManagement() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows cols={7} rows={8} />
+              ) : loadError ? (
+                <TableStateRow cols={7}><ErrorState title="Couldn't load inventory" onRetry={fetchInventory} /></TableStateRow>
               ) : filteredInventory.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                    No products found
-                  </TableCell>
-                </TableRow>
+                <TableStateRow cols={7}>
+                  <EmptyState
+                    icon={BoxesIcon}
+                    title={inventory.length === 0 ? 'No stock records yet' : 'Nothing matches these filters'}
+                    description={inventory.length === 0 ? 'Products added to the catalogue appear here so you can receive and track stock.' : 'Try a different search or switch the filter back to All Products.'}
+                  />
+                </TableStateRow>
               ) : (
                 pg.pageItems.map((item) => {
                   const status = getStockStatus(item);

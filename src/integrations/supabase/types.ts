@@ -299,6 +299,181 @@ export type Database = {
           },
         ]
       }
+      credit_customers: {
+        Row: {
+          address: string | null
+          created_at: string
+          credit_limit: number
+          default_days: number
+          email: string | null
+          id: string
+          id_number: string | null
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          credit_limit?: number
+          default_days?: number
+          email?: string | null
+          id?: string
+          id_number?: string | null
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          credit_limit?: number
+          default_days?: number
+          email?: string | null
+          id?: string
+          id_number?: string | null
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_sale_id: string
+          id: string
+          notes: string | null
+          received_by: string | null
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_sale_id: string
+          id?: string
+          notes?: string | null
+          received_by?: string | null
+          store_id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_sale_id?: string
+          id?: string
+          notes?: string | null
+          received_by?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_payments_credit_sale_id_fkey"
+            columns: ["credit_sale_id"]
+            isOneToOne: false
+            referencedRelation: "credit_sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_sales: {
+        Row: {
+          amount: number
+          amount_paid: number
+          branch_id: string
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_date: string
+          id: string
+          receipt_number: string
+          repayment_days: number
+          sale_id: string
+          store_id: string
+        }
+        Insert: {
+          amount: number
+          amount_paid?: number
+          branch_id: string
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          due_date: string
+          id?: string
+          receipt_number: string
+          repayment_days: number
+          sale_id: string
+          store_id?: string
+        }
+        Update: {
+          amount?: number
+          amount_paid?: number
+          branch_id?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          due_date?: string
+          id?: string
+          receipt_number?: string
+          repayment_days?: number
+          sale_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_sales_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "credit_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_sales_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_owners: {
         Row: {
           created_at: string
@@ -739,6 +914,7 @@ export type Database = {
           local_id: string | null
           notes: string | null
           original_sale_id: string | null
+          payment_method: string
           receipt_number: string
           status: Database["public"]["Enums"]["transaction_status"] | null
           store_id: string
@@ -764,6 +940,7 @@ export type Database = {
           local_id?: string | null
           notes?: string | null
           original_sale_id?: string | null
+          payment_method?: string
           receipt_number: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
           store_id?: string
@@ -789,6 +966,7 @@ export type Database = {
           local_id?: string | null
           notes?: string | null
           original_sale_id?: string | null
+          payment_method?: string
           receipt_number?: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
           store_id?: string

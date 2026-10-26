@@ -31,6 +31,7 @@ import StockTransfers from "./pages/inventory/StockTransfers";
 import BulkImport from "./pages/admin/BulkImport";
 import Stores from "./pages/platform/Stores";
 import Profile from "./pages/Profile";
+import Creditors from "./pages/operations/Creditors";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
                   <Route path="/bulk-import" element={<BulkImport />} />
                   <Route path="/stores" element={<Stores />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/creditors" element={<Creditors />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

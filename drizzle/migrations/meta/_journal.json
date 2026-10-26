@@ -15,6 +15,13 @@
       "when": 1793043453256,
       "tag": "0001_store_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793044343280,
+      "tag": "0002_credit_sales",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,6 +77,7 @@ export default function Products() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -111,6 +113,7 @@ export default function Products() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      setLoadError(false);
       const [productsRes, categoriesRes, suppliersRes] = await Promise.all([
         supabase
           .from('products')
@@ -129,7 +132,7 @@ export default function Products() {
       setSuppliers(suppliersRes.data as Supplier[]);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -596,24 +599,26 @@ export default function Products() {
 
       {/* Products table */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="rounded-lg border bg-card">
+          <Table><TableBody><TableLoadingRows cols={6} rows={8} /></TableBody></Table>
         </div>
+      ) : loadError ? (
+        <div className="rounded-lg border bg-card"><ErrorState title="Couldn't load products" onRetry={fetchData} /></div>
       ) : filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
-          <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">
-            {searchQuery ? 'No products found' : 'No products yet'}
-          </p>
-          {canManage && !searchQuery && (
-            <Button className="mt-4" onClick={() => setShowDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add your first product
-            </Button>
-          )}
+        <div className="rounded-lg border bg-card">
+          <EmptyState
+            icon={Package}
+            title={searchQuery ? 'No matching products' : 'No products yet'}
+            description={searchQuery ? `Nothing matches "${searchQuery}". Try another name, SKU or barcode.` : 'Add your first product or use Bulk Import to bring in your catalogue.'}
+            action={canManage && !searchQuery ? (
+              <Button onClick={() => setShowDialog(true)}><Plus className="mr-2 h-4 w-4" />Add product</Button>
+            ) : searchQuery ? (
+              <Button variant="outline" size="sm" onClick={() => setSearchQuery('')}>Clear search</Button>
+            ) : undefined}
+          />
         </div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
