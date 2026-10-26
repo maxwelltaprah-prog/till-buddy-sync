@@ -217,7 +217,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="scrollbar-thin px-1 py-2">
         {isPlatformOwner && (
           <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
