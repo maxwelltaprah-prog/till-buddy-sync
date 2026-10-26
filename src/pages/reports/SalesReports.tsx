@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useReportBranch } from '@/hooks/useReportBranch';
+import { Package } from 'lucide-react';
 import { ReportBranchSelector } from '@/components/ReportBranchSelector';
 import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
