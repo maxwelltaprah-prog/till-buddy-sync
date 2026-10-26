@@ -27,7 +27,6 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
-  Settings as SettingsIcon,
   Database,
   Download,
   Upload,
@@ -36,7 +35,6 @@ import {
   Loader2,
   HardDrive,
   AlertTriangle,
-  CheckCircle,
 } from 'lucide-react';
 
 interface SystemSettings {
