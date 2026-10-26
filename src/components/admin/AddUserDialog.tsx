@@ -81,43 +81,16 @@ export function AddUserDialog({ open, onOpenChange, branches, onUserAdded }: Add
     setIsSubmitting(true);
 
     try {
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: fullName,
-          },
-        },
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'create_user', email, password, fullName, role, branchId: branchId || null },
       });
-
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('Failed to create user');
+      if (error || data?.error) {
+        let msg = data?.error;
+        try { msg = msg || (await (error as any)?.context?.json())?.error; } catch { /* ignore */ }
+        throw new Error(msg || error?.message || 'Failed to create user');
       }
 
-      // Wait a moment for the trigger to create the profile
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Update profile with branch
-      if (branchId) {
-        await supabase
-          .from('profiles')
-          .update({ branch_id: branchId })
-          .eq('user_id', authData.user.id);
-      }
-
-      // Update user role (delete default and insert new)
-      await supabase.from('user_roles').delete().eq('user_id', authData.user.id);
-      await supabase.from('user_roles').insert({
-        user_id: authData.user.id,
-        role: role,
-      });
-
-      toast.success('User created successfully! They will receive a confirmation email.');
+      toast.success('User created. They can sign in now.');
       resetForm();
       onOpenChange(false);
       onUserAdded();
