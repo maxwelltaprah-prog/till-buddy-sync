@@ -19,6 +19,8 @@ export default function ProfitReport() {
   const [to, setTo] = useState(today);
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!scope.canView) { setItems([]); setIsLoading(false); return; }
@@ -26,6 +28,7 @@ export default function ProfitReport() {
     let active = true;
     setItems([]);
     setIsLoading(true);
+    setLoadError(false);
     const start = new Date(from + 'T00:00:00').toISOString();
     const end = new Date(to + 'T23:59:59.999').toISOString();
     let query = supabase.from('sale_items')
@@ -34,12 +37,12 @@ export default function ProfitReport() {
     if (scope.branchId) query = query.eq('sale.branch_id', scope.branchId);
     query.then(({ data, error }) => {
       if (!active) return;
-      if (error) toast.error('Failed to load profit report');
+      if (error) setLoadError(true);
       else setItems(data || []);
       setIsLoading(false);
     });
     return () => { active = false; };
-  }, [from, to, scope.branchId, scope.canView]);
+  }, [from, to, scope.branchId, scope.canView, reload]);
 
   const rows = useMemo(() => {
     const m = new Map<string, { name: string; qty: number; revenue: number; cost: number }>();
@@ -72,18 +75,24 @@ export default function ProfitReport() {
           <div className="space-y-1"><Label>To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         </div>
       </div>
+      {isLoading ? <CardsLoading /> : (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[['Revenue', formatPrice(tot.revenue)], ['Cost of Goods', formatPrice(tot.cost)], ['Gross Profit', formatPrice(profit)], ['Margin', `${margin.toFixed(1)}%`]].map(([l, v]) => (
-          <Card key={l}><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{l}</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{isLoading ? '—' : v}</p></CardContent></Card>
+          <Card key={l}><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">{l}</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{v}</p></CardContent></Card>
         ))}
       </div>
+      )}
       <Card>
         <CardContent className="pt-6">
           <Table>
             <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Qty Sold</TableHead><TableHead>Revenue</TableHead><TableHead>Cost</TableHead><TableHead>Profit</TableHead><TableHead>Margin</TableHead></TableRow></TableHeader>
             <TableBody>
-              {pg.pageItems.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">{isLoading ? 'Loading profit report…' : from > to ? 'Select a valid date range' : 'No sales in this period'}</TableCell></TableRow>
+              {isLoading ? <TableLoadingRows cols={6} /> : loadError ? (
+                <TableStateRow cols={6}><ErrorState title="Couldn't load profit report" onRetry={() => setReload((n) => n + 1)} /></TableStateRow>
+              ) : pg.pageItems.length === 0 ? (
+                <TableStateRow cols={6}>
+                  <EmptyState icon={TrendingUp} title={from > to ? 'Invalid date range' : 'No sales in this period'} description={from > to ? 'The start date must be on or before the end date.' : 'Profit appears once sales are completed in the selected dates and branch.'} />
+                </TableStateRow>
               ) : pg.pageItems.map((r) => (
                 <TableRow key={r.name}>
                   <TableCell className="font-medium">{r.name}</TableCell><TableCell>{r.qty}</TableCell>
