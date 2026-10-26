@@ -22,6 +22,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
+import { TransactionDetailsDialog } from '@/components/TransactionDetailsDialog';
 
 interface DashboardStats {
   todaySales: number;
@@ -42,7 +43,8 @@ export default function Dashboard() {
     weekGrowth: null,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [recentSales, setRecentSales] = useState<{ receipt: string; total: number; time: string }[]>([]);
+  const [recentSales, setRecentSales] = useState<{ id: string; receipt: string; total: number; time: string }[]>([]);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
   const isAdmin = roles.includes('admin');
   const isCashier = roles.includes('cashier');
@@ -66,7 +68,7 @@ export default function Dashboard() {
       // Fetch today's sales
       const { data: todaySalesData, error: salesError } = await supabase
         .from('sales')
-        .select('total, receipt_number, created_at')
+        .select('id, total, receipt_number, created_at')
         .eq('branch_id', branch.id)
         .eq('status', 'completed')
         .gte('created_at', startOfToday.toISOString())
@@ -81,9 +83,10 @@ export default function Dashboard() {
       const recent = (todaySalesData || [])
         .slice(0, 5)
         .map(sale => ({
+          id: sale.id,
           receipt: sale.receipt_number,
           total: sale.total,
-          time: format(new Date(sale.created_at!), 'HH:mm'),
+          time: sale.created_at ? format(new Date(sale.created_at), 'HH:mm') : '—',
         }));
       setRecentSales(recent);
 
@@ -366,7 +369,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3">
                         <ReceiptText aria-hidden="true" className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
                         <div>
-                          <span className="break-all text-sm font-medium">{sale.receipt}</span>
+                          <Button variant="link" className="h-auto whitespace-normal break-all p-0 text-left text-sm font-medium text-foreground" aria-label={`View transaction ${sale.receipt}`} onClick={() => setSelectedSaleId(sale.id)}>{sale.receipt}</Button>
                           <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{sale.time}</span>
                         </div>
                       </div>
@@ -391,6 +394,7 @@ export default function Dashboard() {
           )}
         </div>
       </section>
+      <TransactionDetailsDialog saleId={selectedSaleId} onClose={() => setSelectedSaleId(null)} />
     </div>
   );
 }
