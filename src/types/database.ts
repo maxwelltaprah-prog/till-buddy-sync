@@ -20,6 +20,7 @@ export interface Branch {
   tax_rate: number;
   is_active: boolean;
   location_type?: string;
+  store_id?: string;
   operating_hours: {
     open: string;
     close: string;
@@ -38,6 +39,7 @@ export interface Profile {
   branch_id?: string;
   is_active: boolean;
   pin_code?: string;
+  store_id?: string;
   created_at: string;
   updated_at: string;
   branch?: Branch;

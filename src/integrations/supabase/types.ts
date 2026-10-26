@@ -25,6 +25,7 @@ export type Database = {
           ip_address: string | null
           new_data: Json | null
           old_data: Json | null
+          store_id: string
           user_agent: string | null
           user_id: string | null
         }
@@ -38,6 +39,7 @@ export type Database = {
           ip_address?: string | null
           new_data?: Json | null
           old_data?: Json | null
+          store_id?: string
           user_agent?: string | null
           user_id?: string | null
         }
@@ -51,6 +53,7 @@ export type Database = {
           ip_address?: string | null
           new_data?: Json | null
           old_data?: Json | null
+          store_id?: string
           user_agent?: string | null
           user_id?: string | null
         }
@@ -60,6 +63,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -74,6 +84,7 @@ export type Database = {
           product_id: string
           quantity: number | null
           reserved_quantity: number | null
+          store_id: string
           updated_at: string | null
         }
         Insert: {
@@ -85,6 +96,7 @@ export type Database = {
           product_id: string
           quantity?: number | null
           reserved_quantity?: number | null
+          store_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -96,6 +108,7 @@ export type Database = {
           product_id?: string
           quantity?: number | null
           reserved_quantity?: number | null
+          store_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -113,6 +126,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "branch_inventory_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       branches: {
@@ -128,6 +148,7 @@ export type Database = {
           operating_hours: Json | null
           phone: string | null
           settings: Json | null
+          store_id: string
           tax_rate: number | null
           updated_at: string | null
         }
@@ -143,6 +164,7 @@ export type Database = {
           operating_hours?: Json | null
           phone?: string | null
           settings?: Json | null
+          store_id?: string
           tax_rate?: number | null
           updated_at?: string | null
         }
@@ -158,10 +180,19 @@ export type Database = {
           operating_hours?: Json | null
           phone?: string | null
           settings?: Json | null
+          store_id?: string
           tax_rate?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "branches_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bulk_pricing_tiers: {
         Row: {
@@ -172,6 +203,7 @@ export type Database = {
           min_quantity: number
           price: number
           product_id: string
+          store_id: string
           updated_at: string | null
         }
         Insert: {
@@ -182,6 +214,7 @@ export type Database = {
           min_quantity: number
           price: number
           product_id: string
+          store_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -192,6 +225,7 @@ export type Database = {
           min_quantity?: number
           price?: number
           product_id?: string
+          store_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -200,6 +234,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulk_pricing_tiers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -214,6 +255,7 @@ export type Database = {
           name: string
           parent_id: string | null
           sort_order: number | null
+          store_id: string
           updated_at: string | null
         }
         Insert: {
@@ -225,6 +267,7 @@ export type Database = {
           name: string
           parent_id?: string | null
           sort_order?: number | null
+          store_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -236,6 +279,7 @@ export type Database = {
           name?: string
           parent_id?: string | null
           sort_order?: number | null
+          store_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -246,7 +290,29 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      platform_owners: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       product_batches: {
         Row: {
@@ -259,6 +325,7 @@ export type Database = {
           mfg_date: string | null
           product_id: string
           quantity: number
+          store_id: string
         }
         Insert: {
           batch_number?: string | null
@@ -270,6 +337,7 @@ export type Database = {
           mfg_date?: string | null
           product_id: string
           quantity?: number
+          store_id?: string
         }
         Update: {
           batch_number?: string | null
@@ -281,6 +349,7 @@ export type Database = {
           mfg_date?: string | null
           product_id?: string
           quantity?: number
+          store_id?: string
         }
         Relationships: [
           {
@@ -295,6 +364,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_batches_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -316,6 +392,7 @@ export type Database = {
           retail_price: number
           shelf_life_days: number | null
           sku: string
+          store_id: string
           supplier_id: string | null
           tax_rate: number | null
           unit: Database["public"]["Enums"]["unit_of_measure"] | null
@@ -337,6 +414,7 @@ export type Database = {
           retail_price?: number
           shelf_life_days?: number | null
           sku: string
+          store_id?: string
           supplier_id?: string | null
           tax_rate?: number | null
           unit?: Database["public"]["Enums"]["unit_of_measure"] | null
@@ -358,6 +436,7 @@ export type Database = {
           retail_price?: number
           shelf_life_days?: number | null
           sku?: string
+          store_id?: string
           supplier_id?: string | null
           tax_rate?: number | null
           unit?: Database["public"]["Enums"]["unit_of_measure"] | null
@@ -369,6 +448,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -390,6 +476,7 @@ export type Database = {
           is_active: boolean | null
           phone: string | null
           pin_code: string | null
+          store_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -402,6 +489,7 @@ export type Database = {
           is_active?: boolean | null
           phone?: string | null
           pin_code?: string | null
+          store_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -414,6 +502,7 @@ export type Database = {
           is_active?: boolean | null
           phone?: string | null
           pin_code?: string | null
+          store_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -423,6 +512,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -437,6 +533,7 @@ export type Database = {
           restock: boolean | null
           return_id: string
           sale_item_id: string
+          store_id: string
         }
         Insert: {
           created_at?: string | null
@@ -447,6 +544,7 @@ export type Database = {
           restock?: boolean | null
           return_id: string
           sale_item_id: string
+          store_id?: string
         }
         Update: {
           created_at?: string | null
@@ -457,6 +555,7 @@ export type Database = {
           restock?: boolean | null
           return_id?: string
           sale_item_id?: string
+          store_id?: string
         }
         Relationships: [
           {
@@ -480,6 +579,13 @@ export type Database = {
             referencedRelation: "sale_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "return_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       returns: {
@@ -493,6 +599,7 @@ export type Database = {
           processed_by: string
           reason: string
           return_number: string
+          store_id: string
           total_refund: number
         }
         Insert: {
@@ -505,6 +612,7 @@ export type Database = {
           processed_by: string
           reason: string
           return_number: string
+          store_id?: string
           total_refund: number
         }
         Update: {
@@ -517,6 +625,7 @@ export type Database = {
           processed_by?: string
           reason?: string
           return_number?: string
+          store_id?: string
           total_refund?: number
         }
         Relationships: [
@@ -534,6 +643,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "returns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sale_items: {
@@ -547,6 +663,7 @@ export type Database = {
           product_name: string
           quantity: number
           sale_id: string
+          store_id: string
           tax_amount: number | null
           tax_breakdown: Json | null
           total: number
@@ -562,6 +679,7 @@ export type Database = {
           product_name: string
           quantity: number
           sale_id: string
+          store_id?: string
           tax_amount?: number | null
           tax_breakdown?: Json | null
           total: number
@@ -577,6 +695,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           sale_id?: string
+          store_id?: string
           tax_amount?: number | null
           tax_breakdown?: Json | null
           total?: number
@@ -597,6 +716,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sale_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sales: {
@@ -615,6 +741,7 @@ export type Database = {
           original_sale_id: string | null
           receipt_number: string
           status: Database["public"]["Enums"]["transaction_status"] | null
+          store_id: string
           subtotal: number
           tax_amount: number | null
           tax_breakdown: Json | null
@@ -639,6 +766,7 @@ export type Database = {
           original_sale_id?: string | null
           receipt_number: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
+          store_id?: string
           subtotal?: number
           tax_amount?: number | null
           tax_breakdown?: Json | null
@@ -663,6 +791,7 @@ export type Database = {
           original_sale_id?: string | null
           receipt_number?: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
+          store_id?: string
           subtotal?: number
           tax_amount?: number | null
           tax_breakdown?: Json | null
@@ -687,6 +816,13 @@ export type Database = {
             referencedRelation: "sales"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stock_movements: {
@@ -701,6 +837,7 @@ export type Database = {
           reason: string | null
           reference_id: string | null
           reference_type: string | null
+          store_id: string
         }
         Insert: {
           branch_id: string
@@ -713,6 +850,7 @@ export type Database = {
           reason?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          store_id?: string
         }
         Update: {
           branch_id?: string
@@ -725,6 +863,7 @@ export type Database = {
           reason?: string | null
           reference_id?: string | null
           reference_type?: string | null
+          store_id?: string
         }
         Relationships: [
           {
@@ -741,6 +880,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_movements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stock_transfers: {
@@ -752,6 +898,7 @@ export type Database = {
           performed_by: string | null
           product_id: string
           quantity: number
+          store_id: string
           to_branch_id: string
         }
         Insert: {
@@ -762,6 +909,7 @@ export type Database = {
           performed_by?: string | null
           product_id: string
           quantity: number
+          store_id?: string
           to_branch_id: string
         }
         Update: {
@@ -772,6 +920,7 @@ export type Database = {
           performed_by?: string | null
           product_id?: string
           quantity?: number
+          store_id?: string
           to_branch_id?: string
         }
         Relationships: [
@@ -790,6 +939,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_transfers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_transfers_to_branch_id_fkey"
             columns: ["to_branch_id"]
             isOneToOne: false
@@ -797,6 +953,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stores: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       suppliers: {
         Row: {
@@ -811,6 +997,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          store_id: string
           updated_at: string | null
         }
         Insert: {
@@ -825,6 +1012,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          store_id?: string
           updated_at?: string | null
         }
         Update: {
@@ -839,9 +1027,18 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          store_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suspended_sales: {
         Row: {
@@ -852,6 +1049,7 @@ export type Database = {
           expires_at: string | null
           id: string
           notes: string | null
+          store_id: string
         }
         Insert: {
           branch_id: string
@@ -861,6 +1059,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           notes?: string | null
+          store_id?: string
         }
         Update: {
           branch_id?: string
@@ -870,6 +1069,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           notes?: string | null
+          store_id?: string
         }
         Relationships: [
           {
@@ -877,6 +1077,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suspended_sales_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]
@@ -887,6 +1094,7 @@ export type Database = {
           description: string | null
           id: string
           key: string
+          store_id: string
           updated_at: string | null
           updated_by: string | null
           value: Json
@@ -896,6 +1104,7 @@ export type Database = {
           description?: string | null
           id?: string
           key: string
+          store_id?: string
           updated_at?: string | null
           updated_by?: string | null
           value: Json
@@ -905,11 +1114,20 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
+          store_id?: string
           updated_at?: string | null
           updated_by?: string | null
           value?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tax_components: {
         Row: {
@@ -921,6 +1139,7 @@ export type Database = {
           name: string
           rate: number
           sort_order: number
+          store_id: string
           updated_at: string
         }
         Insert: {
@@ -932,6 +1151,7 @@ export type Database = {
           name: string
           rate?: number
           sort_order?: number
+          store_id?: string
           updated_at?: string
         }
         Update: {
@@ -943,9 +1163,18 @@ export type Database = {
           name?: string
           rate?: number
           sort_order?: number
+          store_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tax_components_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -990,6 +1219,7 @@ export type Database = {
           sale_id: string
         }[]
       }
+      current_store_id: { Args: never; Returns: string }
       generate_receipt_number: {
         Args: { branch_code: string }
         Returns: string
@@ -1014,6 +1244,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_platform_owner: { Args: { _uid: string }; Returns: boolean }
+      switch_store: { Args: { _store_id: string }; Returns: undefined }
       transfer_stock: {
         Args: {
           p_from: string
@@ -1024,6 +1256,7 @@ export type Database = {
         }
         Returns: string
       }
+      user_store: { Args: { _uid: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "branch_supervisor" | "stock_manager" | "cashier"

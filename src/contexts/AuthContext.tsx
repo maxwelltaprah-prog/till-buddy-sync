@@ -3,6 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
 
+export interface StoreInfo { id: string; name: string }
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -10,6 +12,8 @@ interface AuthContextType {
   roles: AppRole[];
   branch: Branch | null;
   isLoading: boolean;
+  isPlatformOwner: boolean;
+  store: StoreInfo | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,7 +23,9 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Reuse one context across hot reloads so provider and consumers always match.
+const globalRef = globalThis as unknown as { __authContext?: React.Context<AuthContextType | undefined> };
+const AuthContext = (globalRef.__authContext ??= createContext<AuthContextType | undefined>(undefined));
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -28,6 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [branch, setBranch] = useState<Branch | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPlatformOwner, setIsPlatformOwner] = useState(false);
+  const [store, setStore] = useState<StoreInfo | null>(null);
 
   // Fetch user profile and roles
   const fetchUserData = async (userId: string) => {
@@ -65,6 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (rolesData) {
         setRoles(rolesData.map((r) => r.role as AppRole));
       }
+
+      const [{ data: ownerRow }, { data: storeRow }] = await Promise.all([
+        supabase.from('platform_owners').select('user_id').eq('user_id', userId).maybeSingle(),
+        profileData?.store_id
+          ? supabase.from('stores').select('id, name').eq('id', profileData.store_id).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      setIsPlatformOwner(!!ownerRow);
+      setStore(storeRow as StoreInfo | null);
     } catch (error) {
       console.error('Error in fetchUserData:', error);
     }
@@ -188,6 +205,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     roles,
     branch,
     isLoading,
+    isPlatformOwner,
+    store,
     signIn,
     signUp,
     signOut,

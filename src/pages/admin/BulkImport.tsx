@@ -100,7 +100,7 @@ export default function BulkImport() {
       }));
       const ids = new Map<string, string>();
       for (let i = 0; i < payload.length; i += 200) {
-        const { data, error } = await supabase.from('products').upsert(payload.slice(i, i + 200), { onConflict: 'sku' }).select('id, sku');
+        const { data, error } = await supabase.from('products').upsert(payload.slice(i, i + 200), { onConflict: 'store_id,sku' }).select('id, sku');
         if (error) throw error;
         data?.forEach((d) => ids.set(d.sku, d.id));
       }

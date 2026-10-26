@@ -65,7 +65,7 @@ export default function ExpiryAgeing() {
 
   const saveThresholds = async () => {
     if (!(th.t1 < th.t2 && th.t2 < th.t3)) return toast.error('Thresholds must increase (e.g. 3 < 4 < 6)');
-    const { error } = await supabase.from('system_settings').upsert({ key: 'expiry_ageing', value: th as any, updated_by: user?.id }, { onConflict: 'key' });
+    const { error } = await supabase.from('system_settings').upsert({ key: 'expiry_ageing', value: th as any, updated_by: user?.id }, { onConflict: 'store_id,key' });
     error ? toast.error(error.message) : toast.success('Ageing thresholds saved');
   };
 

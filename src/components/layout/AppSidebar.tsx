@@ -149,7 +149,7 @@ const adminNavItems: NavItem[] = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { profile, roles, signOut } = useAuth();
+  const { profile, roles, signOut, isPlatformOwner, store } = useAuth();
   const { settings: shopSettings } = useShopSettings();
 
   const filterByRole = (items: NavItem[]) => {
@@ -218,6 +218,23 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {isPlatformOwner && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={location.pathname === '/stores'}>
+                    <Link to="/stores">
+                      <Building2 className="h-4 w-4" />
+                      <span>Stores{store ? ` · ${store.name}` : ''}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         {renderNavGroup('Main', mainNavItems)}
         {renderNavGroup('Inventory', inventoryNavItems)}
         {renderNavGroup('Operations', operationsNavItems)}
