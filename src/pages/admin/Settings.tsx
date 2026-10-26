@@ -506,40 +506,6 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* System Info */}
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <SettingsIcon className="h-5 w-5" />
-                System Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-success" />
-                    <span className="font-medium">Database Status</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Connected</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Database className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Backend</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Lovable Cloud</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Security</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">RLS Enabled</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 
