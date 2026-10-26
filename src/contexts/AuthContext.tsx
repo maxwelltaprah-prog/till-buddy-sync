@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
+import { toast } from 'sonner';
 
 export interface StoreInfo { id: string; name: string }
 
@@ -77,9 +78,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const [{ data: ownerRow }, { data: storeRow }] = await Promise.all([
         supabase.from('platform_owners').select('user_id').eq('user_id', userId).maybeSingle(),
         profileData?.store_id
-          ? supabase.from('stores').select('id, name').eq('id', profileData.store_id).maybeSingle()
+          ? supabase.from('stores').select('id, name, is_active, archived_at').eq('id', profileData.store_id).maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
+      if (!ownerRow && profileData?.store_id && (!storeRow || !storeRow.is_active || storeRow.archived_at)) {
+        setProfile(null); setRoles([]); setBranch(null); setStore(null); setIsPlatformOwner(false);
+        await supabase.auth.signOut();
+        toast.error('Your store is inactive or archived. Contact the platform owner.');
+        return;
+      }
       setIsPlatformOwner(!!ownerRow);
       setStore(storeRow as StoreInfo | null);
     } catch (error) {
@@ -104,6 +111,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           setRoles([]);
           setBranch(null);
+          setStore(null);
+          setIsPlatformOwner(false);
         }
         
         if (event === 'SIGNED_OUT') {
@@ -132,6 +141,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!user || isPlatformOwner) return;
+    const interval = window.setInterval(() => { void fetchUserData(user.id); }, 30000);
+    return () => window.clearInterval(interval);
+  }, [user?.id, isPlatformOwner]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({

@@ -7,3 +7,4 @@
 - Lists use `usePagination` + `PaginationBar` from `src/components/PaginationBar.tsx` — one consistent pager.
 - Sales and profit reports use `useReportBranch` for local report scope, never changing the user's assigned POS branch; database policies remain the access authority.
 - Historical transaction details reconstruct receipts through `transactionReceipt` using saved sale/item totals and tax breakdowns, never current tax rates, so reprints preserve original amounts.
+- Store lifecycle and administrator password actions are validated by `manage-users` against platform ownership; inactive/archived store members lose tenant access through `current_store_id`, with transaction guards covering security-definer writes. Store deletion archives records instead of erasing them.
