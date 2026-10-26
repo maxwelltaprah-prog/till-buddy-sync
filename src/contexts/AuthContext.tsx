@@ -23,7 +23,9 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Reuse one context across hot reloads so provider and consumers always match.
+const globalRef = globalThis as unknown as { __authContext?: React.Context<AuthContextType | undefined> };
+const AuthContext = (globalRef.__authContext ??= createContext<AuthContextType | undefined>(undefined));
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
