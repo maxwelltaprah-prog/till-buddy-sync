@@ -45,6 +45,8 @@ import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useTaxComponents } from '@/hooks/useTaxComponents';
 import { calculateTaxes } from '@/lib/tax';
 import { receiptCashierName } from '@/lib/cashier';
+import { CreditPaymentPanel, type CreditSelection } from '@/components/pos/CreditPaymentPanel';
+import { CreditAlertBanner } from '@/components/pos/CreditAlertBanner';
 
 interface ProductWithInventory extends Product {
   branch_inventory: { quantity: number; is_available?: boolean }[];
@@ -64,6 +66,8 @@ export default function POSTerminal() {
   const [isLoading, setIsLoading] = useState(true);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [cashReceived, setCashReceived] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'credit'>('cash');
+  const [creditSel, setCreditSel] = useState<CreditSelection | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddToCartDialog, setShowAddToCartDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductWithInventory | null>(null);
@@ -348,8 +352,12 @@ export default function POSTerminal() {
       return;
     }
 
-    const received = parseFloat(cashReceived || '0');
-    if (received < total) {
+    const isCredit = paymentMode === 'credit';
+    const received = isCredit ? 0 : parseFloat(cashReceived || '0');
+    if (isCredit) {
+      if (!creditSel?.customer) { toast.error('Select a creditor'); return; }
+      if (creditSel.blocker) { toast.error(creditSel.blocker); return; }
+    } else if (received < total) {
       toast.error('Insufficient payment amount');
       return;
     }
@@ -378,7 +386,7 @@ export default function POSTerminal() {
           p_tax_amount: taxAmount,
           p_total: total,
           p_cash_received: received,
-          p_change_given: changeAmount,
+          p_change_given: isCredit ? 0 : changeAmount,
         }
       );
 
@@ -416,6 +424,20 @@ export default function POSTerminal() {
       if (itemsError) {
         console.error('Sale items error:', itemsError);
         throw new Error(itemsError.message || 'Failed to save sale items');
+      }
+
+      if (isCredit && creditSel?.customer) {
+        const { error: creditError } = await supabase.from('credit_sales').insert({
+          sale_id: sale.id,
+          customer_id: creditSel.customer.id,
+          branch_id: branch.id,
+          receipt_number: receiptData,
+          amount: total,
+          repayment_days: creditSel.days,
+          due_date: creditSel.dueDate,
+        });
+        if (creditError) throw new Error(`Sale saved but credit record failed: ${creditError.message}`);
+        await supabase.from('sales').update({ payment_method: 'credit' }).eq('id', sale.id);
       }
 
       // Update inventory and record stock movements
@@ -480,16 +502,22 @@ export default function POSTerminal() {
         taxLines: taxResult.lines,
         total,
         cashReceived: received,
-        change: changeAmount,
+        change: isCredit ? 0 : changeAmount,
         branding,
+        credit: isCredit && creditSel?.customer
+          ? { customerName: creditSel.customer.name, dueDate: creditSel.dueDate, days: creditSel.days }
+          : undefined,
       };
 
       setLastSaleData(receiptDataForPrint);
       setShowPaymentDialog(false);
       setShowReceiptDialog(true);
       
-      toast.success(`Sale completed! Receipt: ${receiptData}`);
+      toast.success(isCredit
+        ? `Credit sale recorded for ${creditSel?.customer?.name}. Repay by ${creditSel?.dueDate}.`
+        : `Sale completed! Receipt: ${receiptData}`);
       setCashReceived('');
+      setPaymentMode('cash');
       clearCart();
       fetchProducts();
     } catch (error: any) {
@@ -875,17 +903,28 @@ export default function POSTerminal() {
 
       {/* Payment dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" />
-              Cash Payment
+              Payment
             </DialogTitle>
             <DialogDescription>
               Total amount: <span className="font-bold text-foreground">{formatPrice(total)}</span>
             </DialogDescription>
           </DialogHeader>
 
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+            {(['cash', 'credit'] as const).map((m) => (
+              <Button key={m} type="button" variant={paymentMode === m ? 'default' : 'ghost'} onClick={() => setPaymentMode(m)}>
+                {m === 'cash' ? 'Cash payment' : 'Credit (pay later)'}
+              </Button>
+            ))}
+          </div>
+
+          {paymentMode === 'credit' ? (
+            <CreditPaymentPanel total={total} onChange={setCreditSel} />
+          ) : (
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Cash Received</label>
@@ -928,6 +967,7 @@ export default function POSTerminal() {
               </div>
             )}
           </div>
+          )}
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
@@ -935,7 +975,7 @@ export default function POSTerminal() {
             </Button>
             <Button
               onClick={processPayment}
-              disabled={parseFloat(cashReceived || '0') < total || isProcessing}
+              disabled={(paymentMode === 'cash' ? parseFloat(cashReceived || '0') < total : !!creditSel?.blocker) || isProcessing}
             >
               {isProcessing ? (
                 <>
