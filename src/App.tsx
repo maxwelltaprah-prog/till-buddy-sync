@@ -29,6 +29,7 @@ import TaxSettings from "./pages/admin/TaxSettings";
 import ExpiryAgeing from "./pages/inventory/ExpiryAgeing";
 import StockTransfers from "./pages/inventory/StockTransfers";
 import BulkImport from "./pages/admin/BulkImport";
+import Stores from "./pages/platform/Stores";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
                   <Route path="/expiry" element={<ExpiryAgeing />} />
                   <Route path="/stock-transfers" element={<StockTransfers />} />
                   <Route path="/bulk-import" element={<BulkImport />} />
+                  <Route path="/stores" element={<Stores />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
