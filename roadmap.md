@@ -7,3 +7,4 @@
 - [x] Credit sales: creditors, POS cash/credit choice with repayment days, repayments, due/overdue alerts.
 - [x] Expiry and credit notifications bell.
 - [x] Open Recent Activity transactions with saved items, payment breakdown, cashier name and receipt actions; verified an existing cash sale, PDF and thermal browser output, and mobile layout (physical printer and credit-sale view not exercised).
+- [ ] Add owner-only store administrator password changes, activation/deactivation and archive deletion with preserved records; enforce disabled store access and verify controls.
