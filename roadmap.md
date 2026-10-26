@@ -3,4 +3,6 @@
 - [x] Fix receipt branding placeholders and cedi encoding; verified shop name, logo, GH₵ amounts and tax lines visually using an existing completed sale without creating a new sale.
 - [x] Print cashier full name rather than email on receipts.
 - [x] Add isolated store accounts with platform-owner access and store-admin staff creation.
-- [x] Verify owner Stores page and existing POS data still load (new store creation left for owner to try).
+- [x] Verify owner Stores page and existing POS data still load (new store creation left for owner to try).- [x] Loading, empty and error states on Products, Inventory, Sales and Profit Reports.
+- [x] Credit sales: creditors, POS cash/credit choice with repayment days, repayments, due/overdue alerts.
+- [x] Expiry and credit notifications bell.
