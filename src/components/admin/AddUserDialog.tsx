@@ -96,11 +96,7 @@ export function AddUserDialog({ open, onOpenChange, branches, onUserAdded }: Add
       onUserAdded();
     } catch (error: any) {
       console.error('Error creating user:', error);
-      if (error.message?.includes('already registered')) {
-        toast.error('A user with this email already exists');
-      } else {
-        toast.error(error.message || 'Failed to create user');
-      }
+      toast.error(error.message || 'Failed to create user');
     } finally {
       setIsSubmitting(false);
     }
