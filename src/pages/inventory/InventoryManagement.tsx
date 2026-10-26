@@ -1,3 +1,5 @@
+import { Boxes as BoxesIcon } from 'lucide-react';
+import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -330,7 +332,7 @@ export default function InventoryManagement() {
               ) : filteredInventory.length === 0 ? (
                 <TableStateRow cols={7}>
                   <EmptyState
-                    icon={Boxes}
+                    icon={BoxesIcon}
                     title={inventory.length === 0 ? 'No stock records yet' : 'Nothing matches these filters'}
                     description={inventory.length === 0 ? 'Products added to the catalogue appear here so you can receive and track stock.' : 'Try a different search or switch the filter back to All Products.'}
                   />
