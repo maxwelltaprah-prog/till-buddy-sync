@@ -129,8 +129,8 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   lines.push(`All amounts in ${data.branding?.currencyCode || 'GHS'}`);
   if (data.credit) {
     lines.push(`${'CREDIT SALE'.padEnd(40)}`);
-    lines.push(`Customer: ${escapeHTML(data.credit.customerName)}`);
-    lines.push(`Repay by: ${escapeHTML(data.credit.dueDate)} (${data.credit.days} days)`);
+    lines.push(`Customer: ${data.credit.customerName}`);
+    lines.push(`Repay by: ${data.credit.dueDate} (${data.credit.days} days)`);
   } else {
     lines.push(`${'Cash:'.padEnd(30)}${formatPrice(data.cashReceived, symbol).padStart(10)}`);
     lines.push(`${'Change:'.padEnd(30)}${formatPrice(data.change, symbol).padStart(10)}`);
