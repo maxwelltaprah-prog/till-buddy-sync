@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const admin = createClient(url, serviceKey);
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
     const { data: { user } } = await admin.auth.getUser(token);
-    if (!user) return json({ error: "Not signed in" }, 401);
+    if (!user) return json({ error: "Your session has expired. Please sign out and sign in again, then retry." }, 401);
 
     const body = await req.json();
     if (!body || typeof body !== 'object') return json({ error: 'Invalid request' }, 400);
