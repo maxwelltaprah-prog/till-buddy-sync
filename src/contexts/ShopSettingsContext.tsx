@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface ShopSettings {
   shop_name: string;
@@ -40,8 +41,14 @@ const ShopSettingsContext = createContext<ShopSettingsContextType | undefined>(u
 export function ShopSettingsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<ShopSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
+  const { user, store } = useAuth();
+  const userId = user?.id ?? null;
+  const storeId = store?.id ?? null;
+  const storeName = store?.name ?? '';
 
   const fetchSettings = async () => {
+    const base = { ...defaultSettings, shop_name: storeName || defaultSettings.shop_name };
+    if (!userId) { setSettings(defaultSettings); setIsLoading(false); return; }
     try {
       const { data, error } = await supabase
         .from('system_settings')
@@ -56,7 +63,9 @@ export function ShopSettingsProvider({ children }: { children: React.ReactNode }
 
       if (data?.value) {
         const loadedSettings = data.value as unknown as ShopSettings;
-        setSettings({ ...defaultSettings, ...loadedSettings });
+        setSettings({ ...base, ...loadedSettings });
+      } else {
+        setSettings(base);
       }
     } catch (error) {
       console.error('Error fetching shop settings:', error);
@@ -66,11 +75,13 @@ export function ShopSettingsProvider({ children }: { children: React.ReactNode }
   };
 
   useEffect(() => {
+    setSettings({ ...defaultSettings, shop_name: storeName || defaultSettings.shop_name });
+    setIsLoading(true);
     fetchSettings();
 
     // Subscribe to changes
     const channel = supabase
-      .channel('shop_settings_changes')
+      .channel(`shop_settings_changes_${storeId ?? 'none'}`)
       .on(
         'postgres_changes',
         {
@@ -88,7 +99,8 @@ export function ShopSettingsProvider({ children }: { children: React.ReactNode }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, storeId]);
 
   const refreshSettings = async () => {
     await fetchSettings();
