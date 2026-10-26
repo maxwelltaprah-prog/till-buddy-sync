@@ -28,6 +28,7 @@ export interface ReceiptData {
     isBulk: boolean;
   }[];
   subtotal: number;
+  discountAmount?: number;
   taxAmount: number;
   taxLines?: { code: string; name: string; rate: number; amount: number }[];
   total: number;
@@ -120,6 +121,7 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
   
   // Totals
   lines.push(`${'Subtotal:'.padEnd(30)}${formatPrice(data.subtotal, symbol).padStart(10)}`);
+  if (data.discountAmount) lines.push(`${'Discount:'.padEnd(30)}${formatPrice(data.discountAmount, symbol).padStart(10)}`);
   (data.taxLines || []).forEach((t) => {
     lines.push(`${`${t.code} (${t.rate}%):`.padEnd(30)}${formatPrice(t.amount, symbol).padStart(10)}`);
   });
@@ -387,6 +389,7 @@ export const generateReceiptPDF = async (data: ReceiptData): Promise<void> => {
       
       <div class="totals">
         <div><span>Subtotal:</span><span>${escapeHTML(formatPrice(data.subtotal, symbol))}</span></div>
+        ${data.discountAmount ? `<div><span>Discount:</span><span>${escapeHTML(formatPrice(data.discountAmount, symbol))}</span></div>` : ''}
         ${(data.taxLines || []).map((t) => `<div><span>${escapeHTML(t.code)} (${t.rate}%):</span><span>${escapeHTML(formatPrice(t.amount, symbol))}</span></div>`).join('')}
         <div><span>Total Tax:</span><span>${escapeHTML(formatPrice(data.taxAmount, symbol))}</span></div>
         <div class="grand-total"><span>TOTAL:</span><span>${escapeHTML(formatPrice(data.total, symbol))}</span></div>
