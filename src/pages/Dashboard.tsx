@@ -4,6 +4,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Link } from 'react-router-dom';
 import { startOfDay, endOfDay, format } from 'date-fns';
 import {
@@ -17,6 +18,8 @@ import {
   BarChart3,
   Loader2,
   AlertTriangle,
+  ReceiptText,
+  CheckCircle2,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 
@@ -328,56 +331,66 @@ export default function Dashboard() {
       )}
 
       {/* Recent activity */}
-      <Card className="border-2 border-transparent hover:border-primary/10 transition-all duration-300">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <BarChart3 className="h-4 w-4 text-primary" />
-            </div>
-            Recent Activity
-          </CardTitle>
-          <CardDescription>
-            Your recent transactions and actions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <section aria-labelledby="recent-activity-heading" className="border-y border-border bg-card text-card-foreground">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
+          <div className="space-y-1">
+            <h2 id="recent-activity-heading" className="text-lg font-semibold text-foreground">Recent Activity</h2>
+            <p className="text-sm text-muted-foreground">Today's completed sales</p>
+          </div>
+          {isAdmin && (
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link to="/reports">Sales report <ArrowRight className="h-4 w-4" /></Link>
+            </Button>
+          )}
+        </header>
+        <div>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div role="status" className="flex items-center justify-center gap-2 border-t py-12 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading transactions…
             </div>
           ) : recentSales.length > 0 ? (
-            <div className="space-y-3">
-              {recentSales.map((sale, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-muted/50 to-muted/30 hover:from-primary/10 hover:to-accent/5 transition-all duration-300 group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-                      <ShoppingCart className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">{sale.receipt}</p>
-                      <p className="text-xs text-muted-foreground">{sale.time}</p>
-                    </div>
-                  </div>
-                  <span className="font-mono font-bold text-lg text-success">{formatPrice(sale.total)}</span>
-                </div>
-              ))}
-            </div>
+            <Table className="border-t">
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-10 pl-4 text-xs sm:pl-6">Receipt</TableHead>
+                  <TableHead className="hidden h-10 text-xs sm:table-cell">Time</TableHead>
+                  <TableHead className="hidden h-10 text-xs md:table-cell">Status</TableHead>
+                  <TableHead className="h-10 pr-4 text-right text-xs sm:pr-6">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentSales.map((sale) => (
+                  <TableRow key={sale.receipt}>
+                    <TableCell className="py-4 pl-4 sm:pl-6">
+                      <div className="flex items-center gap-3">
+                        <ReceiptText aria-hidden="true" className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" />
+                        <div>
+                          <span className="break-all text-sm font-medium">{sale.receipt}</span>
+                          <span className="mt-1 block text-xs text-muted-foreground sm:hidden">{sale.time}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden tabular-nums text-muted-foreground sm:table-cell">{sale.time}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-success" /> Completed
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap pr-4 text-right font-semibold tabular-nums sm:pr-6">{formatPrice(sale.total)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 rounded-full bg-muted mb-4">
-                <BarChart3 className="h-10 w-10 text-muted-foreground/50" />
-              </div>
-              <p className="text-muted-foreground font-medium">No recent activity</p>
-              <p className="text-sm text-muted-foreground/70">
-                Start by adding products and making your first sale
-              </p>
+            <div className="flex flex-col items-center justify-center gap-2 border-t px-4 py-12 text-center">
+              <ReceiptText className="mb-1 h-6 w-6 text-muted-foreground" />
+              <p className="text-sm font-medium">No sales today</p>
+              <p className="text-xs text-muted-foreground">{branch?.name || 'This branch'} · {format(new Date(), 'dd MMM yyyy')}</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }
