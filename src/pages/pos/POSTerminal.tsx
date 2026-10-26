@@ -553,6 +553,7 @@ export default function POSTerminal() {
     <div className="h-[calc(100vh-3.5rem)] flex bg-gradient-to-br from-background via-background to-muted/30">
       {/* Products panel */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
+        <div className="-mx-4 -mt-4 mb-4 empty:hidden"><CreditAlertBanner /></div>
         {/* Search bar */}
         <div className="mb-4">
           <div className="flex gap-2">

@@ -7,6 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, WifiOff } from 'lucide-react';
 import { OfflineStatus } from '@/components/OfflineStatus';
+import { NotificationBell } from './NotificationBell';
 
 export function AppLayout() {
   const { user, isLoading, profile, roles, branch, store } = useAuth();
@@ -69,6 +70,7 @@ export function AppLayout() {
               </Badge>
             )}
           </div>
+          <NotificationBell />
           <OfflineStatus branchId={branch?.id} />
         </header>
 
