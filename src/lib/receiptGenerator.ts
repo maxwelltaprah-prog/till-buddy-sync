@@ -182,9 +182,8 @@ export const printThermalReceipt = async (data: ReceiptData): Promise<void> => {
 
 // Fallback print via window
 const printViaWindow = (text: string) => {
-  const printWindow = window.open('', '_blank', 'width=400,height=600');
-  if (printWindow) {
-    printWindow.document.write(`
+  const html = `
+      <!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8" />
@@ -210,12 +209,19 @@ const printViaWindow = (text: string) => {
           <pre>${escapeHTML(text)}</pre>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const printWindow = window.open(url, '_blank', 'width=400,height=600');
+  if (!printWindow) {
+    URL.revokeObjectURL(url);
+    throw new Error('Please allow pop-ups to print your receipt.');
+  }
+  printWindow.onload = async () => {
+    await printWindow.document.fonts.ready;
     printWindow.focus();
     printWindow.print();
-    printWindow.close();
-  }
+    URL.revokeObjectURL(url);
+  };
 };
 
 // Keep saved branding and product text as text, not executable print-window HTML.
