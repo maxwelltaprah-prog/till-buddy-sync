@@ -30,6 +30,7 @@ import ExpiryAgeing from "./pages/inventory/ExpiryAgeing";
 import StockTransfers from "./pages/inventory/StockTransfers";
 import BulkImport from "./pages/admin/BulkImport";
 import Stores from "./pages/platform/Stores";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
                   <Route path="/stock-transfers" element={<StockTransfers />} />
                   <Route path="/bulk-import" element={<BulkImport />} />
                   <Route path="/stores" element={<Stores />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
