@@ -6,3 +6,4 @@
 - [x] Verify owner Stores page and existing POS data still load (new store creation left for owner to try).- [x] Loading, empty and error states on Products, Inventory, Sales and Profit Reports.
 - [x] Credit sales: creditors, POS cash/credit choice with repayment days, repayments, due/overdue alerts.
 - [x] Expiry and credit notifications bell.
+- [x] Open Recent Activity transactions with saved items, payment breakdown, cashier name and receipt actions; verified an existing cash sale, PDF and thermal browser output, and mobile layout (physical printer and credit-sale view not exercised).
