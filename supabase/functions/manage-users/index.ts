@@ -110,12 +110,19 @@ Deno.serve(async (req) => {
       return json({ error: "Unknown action" }, 400);
     }
 
+    const IN_USE = "This email has already been used or assigned to another outlet or shop. Please use a different email.";
+    const { data: existing } = await admin.from("profiles").select("user_id").ilike("email", email).limit(1);
+    if (existing && existing.length) {
+      if (body.action === "create_store") await admin.from("stores").delete().eq("id", storeId);
+      return json({ error: IN_USE }, 409);
+    }
     const { data: created, error: cErr } = await admin.auth.admin.createUser({
       email, password, email_confirm: true, user_metadata: { full_name: fullName },
     });
     if (cErr) {
       if (body.action === "create_store") await admin.from("stores").delete().eq("id", storeId);
-      return json({ error: cErr.message }, 400);
+      const dup = /already|registered|exists/i.test(cErr.message);
+      return json({ error: dup ? IN_USE : cErr.message }, dup ? 409 : 400);
     }
     const uid = created.user.id;
     await admin.from("profiles").update({ store_id: storeId, branch_id: branchId, full_name: fullName, phone }).eq("user_id", uid);
