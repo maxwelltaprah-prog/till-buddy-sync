@@ -119,7 +119,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-background via-background to-muted/30 min-h-full">
+    <div className="space-y-6">
       {/* Welcome section */}
       <div className="space-y-1">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

@@ -267,7 +267,7 @@ export default function Settings() {
 
   if (!isAdmin) {
     return (
-      <div className="p-6">
+      <div>
         <div className="flex flex-col items-center justify-center h-64 text-center">
           <Shield className="h-12 w-12 text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground">Access Denied</p>
@@ -280,7 +280,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">System Settings</h1>
         <p className="text-muted-foreground">

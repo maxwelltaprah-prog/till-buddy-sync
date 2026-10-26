@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
@@ -9,8 +9,10 @@ import { Loader2, WifiOff } from 'lucide-react';
 import { OfflineStatus } from '@/components/OfflineStatus';
 
 export function AppLayout() {
-  const { user, isLoading, profile, roles, branch } = useAuth();
+  const { user, isLoading, profile, roles, branch, store } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isFullBleed = pathname === '/pos';
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -55,27 +57,29 @@ export function AppLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/70 md:px-6">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          
-          <div className="flex items-center gap-2 flex-1">
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex flex-1 items-center gap-2 text-sm">
+            {store && <span className="font-medium text-foreground">{store.name}</span>}
+            {store && branch && <span className="text-muted-foreground">/</span>}
             {branch && (
-              <Badge variant="outline" className="font-normal">
+              <Badge variant="secondary" className="font-normal">
                 {branch.name}
               </Badge>
             )}
           </div>
-
-
-          <div className="flex items-center gap-2">
-            {/* Offline status indicator with sync */}
-            <OfflineStatus branchId={branch?.id} />
-          </div>
+          <OfflineStatus branchId={branch?.id} />
         </header>
 
-        <main className="flex-1 overflow-auto">
-          <Outlet />
+        <main className="flex-1 overflow-auto bg-muted/30">
+          {isFullBleed ? (
+            <Outlet />
+          ) : (
+            <div className="page-shell mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
+              <Outlet />
+            </div>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>

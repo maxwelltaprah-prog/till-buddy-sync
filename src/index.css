@@ -261,3 +261,17 @@
     @apply transition-all duration-300 ease-out;
   }
 }
+
+@layer utilities {
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: hsl(var(--sidebar-border)) transparent; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--sidebar-border)); border-radius: 9999px; }
+  .scrollbar-thin::-webkit-scrollbar-button { display: none; }
+}
+
+@layer components {
+  .page-shell h1 { @apply text-2xl font-semibold tracking-tight text-foreground; }
+  .page-shell h1 + p { @apply mt-1 text-sm text-muted-foreground; }
+  .page-shell .rounded-lg.border.bg-card { @apply shadow-sm; }
+}
