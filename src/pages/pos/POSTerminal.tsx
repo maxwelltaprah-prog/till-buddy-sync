@@ -25,7 +25,7 @@ import {
   Plus,
   Minus,
   Trash2,
-  DollarSign,
+  Banknote,
   ShoppingCart,
   Package,
   Loader2,
@@ -810,7 +810,7 @@ export default function POSTerminal() {
             disabled={cart.length === 0}
             onClick={() => setShowPaymentDialog(true)}
           >
-            <DollarSign className="mr-2 h-5 w-5" />
+            <Banknote className="mr-2 h-5 w-5" />
             Pay {formatPrice(total)}
           </Button>
         </div>

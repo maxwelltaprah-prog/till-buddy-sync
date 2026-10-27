@@ -12,7 +12,7 @@ import {
   Package,
   Users,
   TrendingUp,
-  DollarSign,
+  Banknote,
   Boxes,
   ArrowRight,
   BarChart3,
@@ -235,7 +235,7 @@ export default function Dashboard() {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
               <div className="p-2 rounded-full bg-success/20">
-                <DollarSign className="h-4 w-4 text-success" />
+                <Banknote className="h-4 w-4 text-success" />
               </div>
             </CardHeader>
             <CardContent>

@@ -39,7 +39,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import {
-  DollarSign,
+  Banknote,
   TrendingUp,
   ShoppingCart,
   Loader2,
@@ -327,7 +327,7 @@ export default function SalesReports() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-success" />
+                <Banknote className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatPrice(stats.totalRevenue)}</div>

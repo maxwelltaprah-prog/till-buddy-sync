@@ -68,7 +68,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  DollarSign,
+  Tags,
 } from 'lucide-react';
 import type { Product, Category, Supplier, UnitOfMeasure, BulkPricingTier } from '@/types/database';
 
@@ -694,7 +694,7 @@ export default function Products() {
                         size="sm"
                         onClick={() => openPricingDialog(product)}
                       >
-                        <DollarSign className="h-3 w-3 mr-1" />
+                        <Tags className="h-3 w-3 mr-1" />
                         {product.bulk_pricing_tiers.length} tier
                         {product.bulk_pricing_tiers.length > 1 ? 's' : ''}
                       </Button>
@@ -730,7 +730,7 @@ export default function Products() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openPricingDialog(product)}>
-                            <DollarSign className="mr-2 h-4 w-4" />
+                            <Tags className="mr-2 h-4 w-4" />
                             Bulk Pricing
                           </DropdownMenuItem>
                           <DropdownMenuItem
