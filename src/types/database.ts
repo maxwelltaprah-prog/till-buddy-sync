@@ -2,7 +2,8 @@
 
 export type AppRole = 'admin' | 'branch_supervisor' | 'stock_manager' | 'cashier';
 
-export type UnitOfMeasure = 'pcs' | 'kg' | 'g' | 'l' | 'ml' | 'box' | 'pack' | 'dozen';
+import type { UnitValue } from '@/lib/units';
+export type UnitOfMeasure = UnitValue;
 
 export type StockOperationType = 'receive' | 'sale' | 'return' | 'adjustment' | 'transfer_in' | 'transfer_out';
 

@@ -1,3 +1,4 @@
+import { UNIT_OPTIONS } from '@/lib/units';
 import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
 import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
@@ -326,16 +327,7 @@ export default function Products() {
     }
   };
 
-  const unitOptions: { value: UnitOfMeasure; label: string }[] = [
-    { value: 'pcs', label: 'Pieces' },
-    { value: 'kg', label: 'Kilograms' },
-    { value: 'g', label: 'Grams' },
-    { value: 'l', label: 'Liters' },
-    { value: 'ml', label: 'Milliliters' },
-    { value: 'box', label: 'Box' },
-    { value: 'pack', label: 'Pack' },
-    { value: 'dozen', label: 'Dozen' },
-  ];
+  const unitOptions = UNIT_OPTIONS as unknown as { value: UnitOfMeasure; label: string }[];
 
   const canManage = hasRole('admin');
 
