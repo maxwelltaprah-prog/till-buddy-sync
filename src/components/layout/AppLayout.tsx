@@ -8,9 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, WifiOff } from 'lucide-react';
 import { OfflineStatus } from '@/components/OfflineStatus';
 import { NotificationBell } from './NotificationBell';
+import { useShopSettings } from '@/contexts/ShopSettingsContext';
 
 export function AppLayout() {
   const { user, isLoading, profile, roles, branch, store } = useAuth();
+  const { settings: shopSettings } = useShopSettings();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isFullBleed = pathname === '/pos';
@@ -62,7 +64,7 @@ export function AppLayout() {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
           <div className="flex flex-1 items-center gap-2 text-sm">
-            {store && <span className="font-medium text-foreground">{store.name}</span>}
+            {(shopSettings.shop_name || store?.name) && <span className="font-medium text-foreground">{shopSettings.shop_name || store?.name}</span>}
             {store && branch && <span className="text-muted-foreground">/</span>}
             {branch && (
               <Badge variant="secondary" className="font-normal">
