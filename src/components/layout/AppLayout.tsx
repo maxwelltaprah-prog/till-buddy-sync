@@ -12,6 +12,7 @@ import { useShopSettings } from '@/contexts/ShopSettingsContext';
 
 export function AppLayout() {
   const { user, isLoading, profile, roles, branch, store } = useAuth();
+  const { settings: shopSettings } = useShopSettings();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isFullBleed = pathname === '/pos';
