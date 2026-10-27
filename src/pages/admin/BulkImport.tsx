@@ -83,12 +83,12 @@ export default function BulkImport() {
       ]);
       const catMap = new Map((cats || []).map((c) => [c.name.toLowerCase(), c.id]));
       const supMap = new Map((sups || []).map((s) => [s.name.toLowerCase(), s.id]));
-      for (const r of valid) {
-        const c = r.raw.category ? String(r.raw.category) : '';
-        if (c && !catMap.has(c.toLowerCase())) {
-          const { data } = await supabase.from('categories').insert({ name: c }).select('id').single();
-          if (data) catMap.set(c.toLowerCase(), data.id);
-        }
+      const newCats = Array.from(new Set(valid.map((r) => String(r.raw.category || '')).filter((c) => c && !catMap.has(c.toLowerCase()))
+        .map((c) => c.toLowerCase()))).map((lc) => valid.find((r) => String(r.raw.category).toLowerCase() === lc)!.raw.category as string);
+      if (newCats.length) {
+        const { data, error } = await supabase.from('categories').insert(newCats.map((name) => ({ name: String(name) }))).select('id, name');
+        if (error) throw error;
+        data?.forEach((c) => catMap.set(c.name.toLowerCase(), c.id));
       }
       const payload = valid.map(({ raw }) => ({
         sku: String(raw.sku), name: String(raw.name), barcode: raw.barcode ? String(raw.barcode) : null,
@@ -106,17 +106,36 @@ export default function BulkImport() {
         data?.forEach((d) => ids.set(d.sku, d.id));
       }
       if (branchId) {
-        for (const { raw } of valid) {
-          const qty = Number(raw.opening_stock);
-          const pid = ids.get(String(raw.sku));
-          if (!qty || !pid) continue;
-          const { data: inv } = await supabase.from('branch_inventory').select('id, quantity').eq('branch_id', branchId).eq('product_id', pid).maybeSingle();
-          if (inv) await supabase.from('branch_inventory').update({ quantity: Number(inv.quantity) + qty }).eq('id', inv.id);
-          else await supabase.from('branch_inventory').insert({ branch_id: branchId, product_id: pid, quantity: qty });
-          await supabase.from('stock_movements').insert({ branch_id: branchId, product_id: pid, operation_type: 'receive', quantity: qty, reason: 'Bulk import opening stock', performed_by: user?.id });
-          if (raw.mfg_date || raw.expiry_date || raw.batch_number) {
-            await supabase.from('product_batches').insert({ branch_id: branchId, product_id: pid, quantity: qty, batch_number: raw.batch_number || null, mfg_date: toDate(raw.mfg_date), expiry_date: toDate(raw.expiry_date), created_by: user?.id });
-          }
+        const stockRows = valid.map(({ raw }) => ({ raw, qty: Number(raw.opening_stock), pid: ids.get(String(raw.sku)) }))
+          .filter((r) => r.qty > 0 && r.pid) as { raw: Record<string, any>; qty: number; pid: string }[];
+        const invMap = new Map<string, { id: string; quantity: number }>();
+        for (let i = 0; i < stockRows.length; i += 200) {
+          const { data, error } = await supabase.from('branch_inventory').select('id, product_id, quantity')
+            .eq('branch_id', branchId).in('product_id', stockRows.slice(i, i + 200).map((r) => r.pid));
+          if (error) throw error;
+          data?.forEach((d) => invMap.set(d.product_id, { id: d.id, quantity: Number(d.quantity) }));
+        }
+        const missing = stockRows.filter((r) => !invMap.has(r.pid));
+        for (let i = 0; i < missing.length; i += 200) {
+          const { error } = await supabase.from('branch_inventory').insert(missing.slice(i, i + 200).map((r) => ({ branch_id: branchId, product_id: r.pid, quantity: r.qty })));
+          if (error) throw error;
+        }
+        const existing = stockRows.filter((r) => invMap.has(r.pid));
+        for (let i = 0; i < existing.length; i += 20) {
+          const results = await Promise.all(existing.slice(i, i + 20).map((r) => {
+            const inv = invMap.get(r.pid)!;
+            return supabase.from('branch_inventory').update({ quantity: inv.quantity + r.qty }).eq('id', inv.id);
+          }));
+          const err = results.find((x) => x.error)?.error; if (err) throw err;
+        }
+        const movements = stockRows.map((r) => ({ branch_id: branchId, product_id: r.pid, operation_type: 'receive' as const, quantity: r.qty, reason: 'Bulk import opening stock', performed_by: user?.id }));
+        const batches = stockRows.filter(({ raw }) => raw.mfg_date || raw.expiry_date || raw.batch_number)
+          .map(({ raw, qty, pid }) => ({ branch_id: branchId, product_id: pid, quantity: qty, batch_number: raw.batch_number ? String(raw.batch_number) : null, mfg_date: toDate(raw.mfg_date), expiry_date: toDate(raw.expiry_date), created_by: user?.id }));
+        for (let i = 0; i < movements.length; i += 200) {
+          const { error } = await supabase.from('stock_movements').insert(movements.slice(i, i + 200)); if (error) throw error;
+        }
+        for (let i = 0; i < batches.length; i += 200) {
+          const { error } = await supabase.from('product_batches').insert(batches.slice(i, i + 200)); if (error) throw error;
         }
       }
       toast.success(`Imported ${valid.length} products`);

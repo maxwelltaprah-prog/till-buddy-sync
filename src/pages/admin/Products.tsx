@@ -1,3 +1,4 @@
+import { Checkbox } from '@/components/ui/checkbox';
 import { UNIT_OPTIONS } from '@/lib/units';
 import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
 import { useCurrency } from '@/hooks/useCurrency';
@@ -149,6 +150,22 @@ export default function Products() {
     );
   });
   const pg = usePagination(filteredProducts);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const allPageSelected = pg.pageItems.length > 0 && pg.pageItems.every((p) => selected.has(p.id));
+  const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const togglePage = () => setSelected((s) => { const n = new Set(s); pg.pageItems.forEach((p) => allPageSelected ? n.delete(p.id) : n.add(p.id)); return n; });
+  const handleBulkDelete = async () => {
+    if (!confirm(`Delete ${selected.size} product(s)? Products that already have sales will be deactivated instead, to keep sales history.`)) return;
+    setBulkDeleting(true);
+    const { data, error } = await supabase.rpc('bulk_delete_products', { p_ids: Array.from(selected) });
+    setBulkDeleting(false);
+    if (error) { toast.error(error.message); return; }
+    const r = (data as any)?.[0] || { deleted: 0, deactivated: 0 };
+    toast.success(`${r.deleted} deleted${r.deactivated ? `, ${r.deactivated} deactivated (have sales history)` : ''}`);
+    setSelected(new Set());
+    fetchData();
+  };
 
   const resetForm = () => {
     setFormData({
@@ -611,9 +628,21 @@ export default function Products() {
         </div>
       ) : (
         <div className="rounded-lg border bg-card">
+          {canManage && selected.size > 0 && (
+            <div className="flex items-center justify-between gap-3 border-b bg-muted/40 px-4 py-2 text-sm">
+              <span>{selected.size} selected</span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+                <Button variant="destructive" size="sm" disabled={bulkDeleting} onClick={handleBulkDelete}>
+                  {bulkDeleting ? 'Deleting…' : `Delete ${selected.size}`}
+                </Button>
+              </div>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
+                {canManage && <TableHead className="w-[40px]"><Checkbox checked={allPageSelected} onCheckedChange={togglePage} aria-label="Select page" /></TableHead>}
                 <TableHead>Product</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead>Category</TableHead>
@@ -626,6 +655,7 @@ export default function Products() {
             <TableBody>
               {pg.pageItems.map((product) => (
                 <TableRow key={product.id}>
+                  {canManage && <TableCell><Checkbox checked={selected.has(product.id)} onCheckedChange={() => toggleOne(product.id)} aria-label={`Select ${product.name}`} /></TableCell>}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">

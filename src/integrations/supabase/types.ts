@@ -1383,6 +1383,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_delete_products: {
+        Args: { p_ids: string[] }
+        Returns: {
+          deactivated: number
+          deleted: number
+        }[]
+      }
       create_sale_with_receipt: {
         Args: {
           p_branch_code: string
