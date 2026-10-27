@@ -1,3 +1,4 @@
+import { UNIT_VALUES } from '@/lib/units';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +15,7 @@ import { toast } from 'sonner';
 import { Download, Loader2, Upload } from 'lucide-react';
 
 const COLUMNS = ['sku', 'name', 'barcode', 'category', 'supplier', 'unit', 'retail_price', 'cost_price', 'tax_rate', 'min_stock_level', 'shelf_life_days', 'opening_stock', 'batch_number', 'mfg_date', 'expiry_date', 'description'];
-const UNITS = ['pcs', 'kg', 'g', 'l', 'ml', 'box', 'pack', 'dozen'];
+const UNITS = UNIT_VALUES;
 
 interface ParsedRow { raw: Record<string, any>; errors: string[]; }
 
@@ -136,7 +137,7 @@ export default function BulkImport() {
       <Card>
         <CardHeader>
           <CardTitle>Upload File</CardTitle>
-          <CardDescription>Columns: {COLUMNS.join(', ')}. Dates as YYYY-MM-DD.</CardDescription>
+          <CardDescription>Columns: {COLUMNS.join(', ')}. Dates as YYYY-MM-DD.<br />Allowed units: {UNITS.join(', ')}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <Button variant="outline" onClick={downloadTemplate}><Download className="h-4 w-4 mr-2" />Template</Button>
