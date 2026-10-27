@@ -1473,6 +1473,30 @@ export type Database = {
         | "box"
         | "pack"
         | "dozen"
+        | "carton"
+        | "crate"
+        | "case"
+        | "bag"
+        | "sack"
+        | "bottle"
+        | "can"
+        | "tin"
+        | "jar"
+        | "sachet"
+        | "roll"
+        | "bundle"
+        | "pair"
+        | "set"
+        | "tray"
+        | "packet"
+        | "piece"
+        | "gallon"
+        | "m"
+        | "cm"
+        | "yard"
+        | "ream"
+        | "tube"
+        | "pallet"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1627,7 +1651,40 @@ export const Constants = {
         "suspended",
         "refunded",
       ],
-      unit_of_measure: ["pcs", "kg", "g", "l", "ml", "box", "pack", "dozen"],
+      unit_of_measure: [
+        "pcs",
+        "kg",
+        "g",
+        "l",
+        "ml",
+        "box",
+        "pack",
+        "dozen",
+        "carton",
+        "crate",
+        "case",
+        "bag",
+        "sack",
+        "bottle",
+        "can",
+        "tin",
+        "jar",
+        "sachet",
+        "roll",
+        "bundle",
+        "pair",
+        "set",
+        "tray",
+        "packet",
+        "piece",
+        "gallon",
+        "m",
+        "cm",
+        "yard",
+        "ream",
+        "tube",
+        "pallet",
+      ],
     },
   },
 } as const
