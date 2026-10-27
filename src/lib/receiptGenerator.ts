@@ -50,9 +50,10 @@ const formatDate = (date: Date): string => {
   });
 };
 
-// Format price with currency symbol
+// Format price with currency symbol (accounting style, e.g. 3,000.00)
 const formatPrice = (amount: number, symbol: string = 'GH₵'): string => {
-  return `${symbol}${amount.toFixed(2)}`;
+  const value = Number.isFinite(amount) ? amount : 0;
+  return `${symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 // Generate thermal printer receipt (ESC/POS format)
