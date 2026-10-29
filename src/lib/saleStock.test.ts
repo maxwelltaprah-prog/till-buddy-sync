@@ -1,3 +1,4 @@
+// @vitest-environment node
 // Run the actual production trigger in an isolated PostgreSQL-compatible database.
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
