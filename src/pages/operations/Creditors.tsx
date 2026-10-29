@@ -17,6 +17,7 @@ import { withStatus, type CreditCustomer, type CreditSaleWithStatus } from '@/ho
 import { CREDIT_STATUS_LABEL, CREDIT_WARN_DAYS, type CreditStatus } from '@/lib/credit';
 import { HandCoins, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { creditBranchScope } from '@/lib/creditBranch';
 
 const statusClass: Record<CreditStatus, string> = {
   paid: 'bg-success/15 text-success',
@@ -29,7 +30,8 @@ const statusClass: Record<CreditStatus, string> = {
 const emptyCustomer = { name: '', phone: '', email: '', address: '', id_number: '', credit_limit: '', default_days: '30', notes: '' };
 
 export default function Creditors() {
-  const { hasAnyRole } = useAuth();
+  const { hasAnyRole, hasRole, branch, store } = useAuth();
+  const scope = creditBranchScope(hasRole('admin'), branch?.id);
   const { formatPrice } = useCurrency();
   const canEdit = hasAnyRole(['admin', 'branch_supervisor']);
   const [customers, setCustomers] = useState<CreditCustomer[]>([]);
@@ -48,10 +50,13 @@ export default function Creditors() {
 
   const load = async () => {
     setIsLoading(true);
+    setCustomers([]); setSales([]);
     setLoadError(false);
+    let salesQuery = supabase.from('credit_sales').select('*, customer:credit_customers(name, phone)').order('due_date');
+    if (scope) salesQuery = salesQuery.eq('branch_id', scope);
     const [c, s] = await Promise.all([
       supabase.from('credit_customers').select('*').order('name'),
-      supabase.from('credit_sales').select('*, customer:credit_customers(name, phone)').order('due_date'),
+      salesQuery,
     ]);
     if (c.error || s.error) setLoadError(true);
     else {
@@ -60,7 +65,7 @@ export default function Creditors() {
     }
     setIsLoading(false);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [scope, store?.id]);
 
   const totals = useMemo(() => {
     const open = sales.filter((s) => s.status !== 'paid');
@@ -100,6 +105,7 @@ export default function Creditors() {
   };
 
   const saveCustomer = async () => {
+    if (!editing && !branch?.id) { toast.error('Select an assigned branch before adding a creditor'); return; }
     if (form.name.trim().length < 2 || form.phone.trim().length < 6) { toast.error('Name and phone number are required'); return; }
     const payload = {
       name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null, address: form.address.trim() || null,
@@ -109,7 +115,7 @@ export default function Creditors() {
     setBusy(true);
     const { error } = editing
       ? await supabase.from('credit_customers').update(payload).eq('id', editing.id)
-      : await supabase.from('credit_customers').insert(payload);
+      : await supabase.from('credit_customers').insert({ ...payload, branch_id: branch?.id });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(editing ? 'Creditor updated' : 'Creditor added');

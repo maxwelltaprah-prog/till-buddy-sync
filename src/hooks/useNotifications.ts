@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { daysUntil } from '@/lib/expiry';
 import { withStatus } from '@/hooks/useCreditAccounts';
+import { creditBranchScope } from '@/lib/creditBranch';
 
 /** Batches expiring within this many days raise a notification. */
 export const EXPIRY_NOTICE_DAYS = 30;
@@ -25,6 +26,7 @@ export function useNotifications() {
   const load = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
+    setItems([]);
     const limit = new Date();
     limit.setDate(limit.getDate() + EXPIRY_NOTICE_DAYS);
     const limitStr = limit.toISOString().slice(0, 10);
@@ -36,7 +38,8 @@ export function useNotifications() {
     if (!isAdmin && branch?.id) bq = bq.eq('branch_id', branch.id);
 
     let cq = supabase.from('credit_sales').select('*, customer:credit_customers(name, phone)').order('due_date').limit(300);
-    if (!isAdmin && branch?.id) cq = cq.eq('branch_id', branch.id);
+    const creditScope = creditBranchScope(isAdmin, branch?.id);
+    if (creditScope) cq = cq.eq('branch_id', creditScope);
 
     const [b, c] = await Promise.all([bq, cq]);
     const out: AppNotification[] = [];

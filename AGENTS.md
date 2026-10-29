@@ -1,4 +1,5 @@
 # Agent Rules
+- Creditor PII and credit sales/payments use restrictive branch RLS (admin-only all-branch access); new creditors save the assigned branch, legacy branch membership comes from saved credit sales, and client credit queries fail closed without a staff branch.
 - User credential updates go through `manage-users` with same-store administrator validation; role screen overrides live in `role_screen_access` and feed both navigation and route guards. Screen visibility never replaces database operation permissions.
 - Receipt print documents declare UTF-8 and escape saved text before HTML insertion; wait for logos before printing so branding and cedi symbols render correctly.
 - Tax is computed only via `src/lib/tax.ts` from `tax_components` rows — keeps POS, receipts and reports consistent.
