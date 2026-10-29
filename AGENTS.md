@@ -1,4 +1,5 @@
 # Agent Rules
+- Dashboard sales and daily growth use completed sales in the assigned branch (cashiers' own sales only); product and restock counts use available active branch inventory, with calculations in `dashboardMetrics` to keep figures testable without widening transaction access.
 - Sale-item insertion deducts outlet stock and logs movements through `deduct_sale_item_stock` atomically; online POS and offline sync must never also deduct inventory client-side, preventing blocked cashier writes, races and double deductions.
 - Creditor PII and credit sales/payments use restrictive branch RLS (admin-only all-branch access); cashiers can read the linked sale for every credit line in their assigned branch, not other branches or stores. New creditors save the assigned branch, legacy branch membership comes from saved credit sales, and client credit queries fail closed without a staff branch.
 - User credential updates go through `manage-users` with same-store administrator validation; role screen overrides live in `role_screen_access` and feed both navigation and route guards. Screen visibility never replaces database operation permissions.
