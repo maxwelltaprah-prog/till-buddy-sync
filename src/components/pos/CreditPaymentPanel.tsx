@@ -10,6 +10,8 @@ import { addDays, creditStatus } from '@/lib/credit';
 import type { CreditCustomer } from '@/hooks/useCreditAccounts';
 import { AlertTriangle, Plus, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { creditBranchScope } from '@/lib/creditBranch';
 
 export interface CreditSelection {
   customer: CreditCustomer | null;
@@ -27,6 +29,8 @@ interface Props {
 const DAY_OPTIONS = [7, 14, 30, 60, 90];
 
 export function CreditPaymentPanel({ total, onChange }: Props) {
+  const { hasRole, branch, store } = useAuth();
+  const scope = creditBranchScope(hasRole('admin'), branch?.id);
   const { formatPrice } = useCurrency();
   const [customers, setCustomers] = useState<CreditCustomer[]>([]);
   const [outstanding, setOutstanding] = useState<Record<string, { balance: number; overdue: number }>>({});
@@ -37,9 +41,12 @@ export function CreditPaymentPanel({ total, onChange }: Props) {
   const [search, setSearch] = useState('');
 
   const load = async () => {
+    setCustomers([]); setOutstanding({}); setCustomerId('');
+    let salesQuery = supabase.from('credit_sales').select('customer_id, amount, amount_paid, due_date');
+    if (scope) salesQuery = salesQuery.eq('branch_id', scope);
     const [c, s] = await Promise.all([
       supabase.from('credit_customers').select('*').eq('is_active', true).order('name'),
-      supabase.from('credit_sales').select('customer_id, amount, amount_paid, due_date'),
+      salesQuery,
     ]);
     setCustomers((c.data as any) || []);
     const map: Record<string, { balance: number; overdue: number }> = {};
@@ -52,7 +59,7 @@ export function CreditPaymentPanel({ total, onChange }: Props) {
     });
     setOutstanding(map);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [scope, store?.id]);
 
   const customer = customers.find((c) => c.id === customerId) || null;
   const dueDate = addDays(new Date(), days);
@@ -73,12 +80,13 @@ export function CreditPaymentPanel({ total, onChange }: Props) {
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search));
 
   const create = async () => {
+    if (!branch?.id) { toast.error('Select an assigned branch before adding a creditor'); return; }
     if (newC.name.trim().length < 2 || newC.phone.trim().length < 6) {
       toast.error('Enter the creditor’s name and phone number');
       return;
     }
     const { data, error } = await supabase.from('credit_customers')
-      .insert({ name: newC.name.trim(), phone: newC.phone.trim(), address: newC.address.trim() || null })
+      .insert({ branch_id: branch.id, name: newC.name.trim(), phone: newC.phone.trim(), address: newC.address.trim() || null })
       .select('*').single();
     if (error) { toast.error(error.message); return; }
     setCustomers((cs) => [...cs, data as any].sort((a, b) => a.name.localeCompare(b.name)));

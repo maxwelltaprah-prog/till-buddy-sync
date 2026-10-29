@@ -302,6 +302,7 @@ export type Database = {
       credit_customers: {
         Row: {
           address: string | null
+          branch_id: string | null
           created_at: string
           credit_limit: number
           default_days: number
@@ -317,6 +318,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          branch_id?: string | null
           created_at?: string
           credit_limit?: number
           default_days?: number
@@ -332,6 +334,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          branch_id?: string | null
           created_at?: string
           credit_limit?: number
           default_days?: number
@@ -346,6 +349,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_customers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_customers_store_id_fkey"
             columns: ["store_id"]
