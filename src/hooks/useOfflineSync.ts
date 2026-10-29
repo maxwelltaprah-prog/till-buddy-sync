@@ -215,34 +215,7 @@ export function useOfflineSync(branchId?: string) {
 
     if (itemsError) throw itemsError;
 
-    // Update inventory
-    for (const item of sale.items) {
-      const { data: currentInventory } = await supabase
-        .from('branch_inventory')
-        .select('quantity')
-        .eq('branch_id', sale.branchId)
-        .eq('product_id', item.product.id)
-        .single();
-
-      if (currentInventory) {
-        await supabase
-          .from('branch_inventory')
-          .update({ quantity: currentInventory.quantity - item.quantity })
-          .eq('branch_id', sale.branchId)
-          .eq('product_id', item.product.id);
-      }
-
-      // Record stock movement
-      await supabase.from('stock_movements').insert({
-        branch_id: sale.branchId,
-        product_id: item.product.id,
-        operation_type: 'sale',
-        quantity: -item.quantity,
-        reference_id: saleRecord.id,
-        reference_type: 'sale',
-        performed_by: sale.cashierId,
-      });
-    }
+    // The sale-item trigger deducts stock and records movements for synced sales too.
   };
 
   // Sync queue items

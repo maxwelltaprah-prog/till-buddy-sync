@@ -440,34 +440,7 @@ export default function POSTerminal() {
         await supabase.from('sales').update({ payment_method: 'credit' }).eq('id', sale.id);
       }
 
-      // Update inventory and record stock movements
-      for (const item of cart) {
-        const { data: currentInventory } = await supabase
-          .from('branch_inventory')
-          .select('quantity')
-          .eq('branch_id', branch.id)
-          .eq('product_id', item.product.id)
-          .single();
-
-        if (currentInventory) {
-          const newQuantity = (currentInventory.quantity || 0) - item.quantity;
-          await supabase
-            .from('branch_inventory')
-            .update({ quantity: newQuantity })
-            .eq('branch_id', branch.id)
-            .eq('product_id', item.product.id);
-        }
-
-        await supabase.from('stock_movements').insert({
-          branch_id: branch.id,
-          product_id: item.product.id,
-          operation_type: 'sale',
-          quantity: -item.quantity,
-          reference_id: sale.id,
-          reference_type: 'sale',
-          performed_by: user.id,
-        });
-      }
+      // Saving sale items deducts outlet inventory and logs movements atomically in the database.
 
       // Prepare receipt data with shop branding
       const branding: ShopBranding = {
