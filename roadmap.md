@@ -1,3 +1,4 @@
+- [ ] Open each credit line's saved transaction with products, quantities, payment details and receipt actions; preserve existing branch access.
 - [x] Fix online and synced outlet sale stock deductions through the atomic sale-item trigger without widening cashier permissions; actual SQL regression tests verify 100 minus 3 equals 97, one movement, warehouse unchanged and oversell rollback. Authenticated Inventory/POS render verified; no live test sales or historical balance changes made.
 - [x] Restrict creditor details, sales, repayments and alerts to staff branches using database policies; branch scope tests pass and signed-in admin view verified. Cashier end-to-end check unavailable because account verification permission was declined.
 - [x] Add secure admin editing of user email and password with duplicate-email protection; account email save verified with current signed-in account; password rules tested without changing existing passwords.

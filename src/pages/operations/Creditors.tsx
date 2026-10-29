@@ -18,6 +18,7 @@ import { CREDIT_STATUS_LABEL, CREDIT_WARN_DAYS, type CreditStatus } from '@/lib/
 import { HandCoins, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { creditBranchScope } from '@/lib/creditBranch';
+import { TransactionDetailsDialog } from '@/components/TransactionDetailsDialog';
 
 const statusClass: Record<CreditStatus, string> = {
   paid: 'bg-success/15 text-success',
@@ -47,6 +48,9 @@ export default function Creditors() {
   const [payAmount, setPayAmount] = useState('');
   const [payNotes, setPayNotes] = useState('');
   const [busy, setBusy] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+
+  useEffect(() => { setSelectedSaleId(null); }, [scope, store?.id]);
 
   const load = async () => {
     setIsLoading(true);
@@ -193,7 +197,11 @@ export default function Creditors() {
                 ) : salesPg.pageItems.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell><div className="font-medium">{s.customer?.name}</div><div className="text-xs text-muted-foreground">{s.customer?.phone}</div></TableCell>
-                    <TableCell className="font-mono text-sm">{s.receipt_number}</TableCell>
+                    <TableCell>
+                      <Button variant="link" className="h-auto p-0 font-mono text-sm" onClick={() => setSelectedSaleId(s.sale_id)} aria-label={`View transaction ${s.receipt_number}`}>
+                        {s.receipt_number}
+                      </Button>
+                    </TableCell>
                     <TableCell className="text-right">{formatPrice(Number(s.amount))}</TableCell>
                     <TableCell className="text-right">{formatPrice(Number(s.amount_paid))}</TableCell>
                     <TableCell className="text-right font-semibold">{formatPrice(s.balance)}</TableCell>
@@ -245,6 +253,8 @@ export default function Creditors() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <TransactionDetailsDialog saleId={selectedSaleId} onClose={() => setSelectedSaleId(null)} />
 
       <Dialog open={showCustomer} onOpenChange={setShowCustomer}>
         <DialogContent className="max-w-lg">
