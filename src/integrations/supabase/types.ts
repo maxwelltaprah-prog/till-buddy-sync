@@ -827,6 +827,35 @@ export type Database = {
           },
         ]
       }
+      role_screen_access: {
+        Row: {
+          enabled: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          screen: string
+          store_id: string
+        }
+        Insert: {
+          enabled: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          screen: string
+          store_id?: string
+        }
+        Update: {
+          enabled?: boolean
+          role?: Database["public"]["Enums"]["app_role"]
+          screen?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_screen_access_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           cost_price: number | null
