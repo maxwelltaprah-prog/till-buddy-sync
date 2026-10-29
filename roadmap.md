@@ -1,4 +1,4 @@
-- [ ] Restrict creditor details, sales, repayments and alerts to staff branches; verify administrator all-branch access.
+- [x] Restrict creditor details, sales, repayments and alerts to staff branches using database policies; branch scope tests pass and signed-in admin view verified. Cashier end-to-end check unavailable because account verification permission was declined.
 - [x] Add secure admin editing of user email and password with duplicate-email protection; account email save verified with current signed-in account; password rules tested without changing existing passwords.
 - [x] Add per-store role screen activation controls; switch persistence verified and original configuration restored; direct-route access decisions covered by tests. Existing database operation permissions remain unchanged.
 - [x] Add admin branch selection to Sales and Profit Reports without changing the assigned POS branch.
