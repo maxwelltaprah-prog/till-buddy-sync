@@ -1,3 +1,5 @@
+- [ ] Add secure admin editing of user email and password with duplicate-email protection.
+- [ ] Add per-store role screen activation controls and verify access enforcement.
 - [x] Add admin branch selection to Sales and Profit Reports without changing the assigned POS branch.
 - [x] Verify branch filtering and report switching with the signed-in admin, both branches and all branches; scope tests pass.
 - [x] Fix receipt branding placeholders and cedi encoding; verified shop name, logo, GH₵ amounts and tax lines visually using an existing completed sale without creating a new sale.
