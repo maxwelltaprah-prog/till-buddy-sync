@@ -2,7 +2,7 @@ import type { AppRole } from '@/types/database';
 
 export const SCREENS = [
   { path: '/pos', label: 'POS Terminal', roles: ['cashier'] },
-  { path: '/dashboard', label: 'Dashboard', roles: ['branch_supervisor'] },
+  { path: '/dashboard', label: 'Dashboard', roles: ['branch_supervisor', 'cashier'] },
   { path: '/products', label: 'Products', roles: ['stock_manager'] },
   { path: '/categories', label: 'Categories', roles: [] },
   { path: '/inventory', label: 'Inventory', roles: ['stock_manager', 'branch_supervisor'] },
