@@ -151,12 +151,12 @@ const adminNavItems: NavItem[] = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const { profile, roles, signOut, isPlatformOwner, store } = useAuth();
+  const { profile, roles, signOut, isPlatformOwner, store, canAccessScreen } = useAuth();
   const { settings: shopSettings } = useShopSettings();
 
   const filterByRole = (items: NavItem[]) => {
     return items.filter(
-      (item) => !item.roles || item.roles.some((role) => roles.includes(role as never))
+      (item) => canAccessScreen(item.url)
     );
   };
 

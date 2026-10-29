@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { storeActionError } from './storeRules.ts';
+import { accountUpdateError, EMAIL_IN_USE } from './accountRules.ts';
 
 const ROLES = ["admin", "branch_supervisor", "stock_manager", "cashier"];
 const json = (body: unknown, status = 200) =>
@@ -25,6 +26,38 @@ Deno.serve(async (req) => {
     const { data: owner, error: ownerError } = await admin.from("platform_owners").select("user_id").eq("user_id", user.id).maybeSingle();
     if (callerError || roleError || ownerError) throw callerError || roleError || ownerError;
     const isAdmin = (callerRoles ?? []).some((r) => r.role === "admin");
+
+    if (body.action === 'update_user_account') {
+      if (typeof body.userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.userId)) return json({ error: 'Select a valid user' }, 400);
+      const [{ data: target, error: targetError }, { data: targetOwner }, { data: activeStore }] = await Promise.all([
+        admin.from('profiles').select('store_id').eq('user_id', body.userId).maybeSingle(),
+        admin.from('platform_owners').select('user_id').eq('user_id', body.userId).maybeSingle(),
+        admin.from('stores').select('is_active, archived_at').eq('id', caller?.store_id ?? '').maybeSingle(),
+      ]);
+      if (targetError) throw targetError;
+      if (!target) return json({ error: 'User not found' }, 404);
+      const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : body.email;
+      const ruleError = accountUpdateError({ admin: isAdmin, owner: Boolean(owner), callerStore: caller?.store_id ?? null, targetStore: target.store_id, targetOwner: Boolean(targetOwner), activeStore: Boolean(activeStore?.is_active && !activeStore.archived_at), email, password: body.password });
+      if (ruleError) return json({ error: ruleError }, 403);
+      const { data: duplicate, error: duplicateError } = await admin.from('profiles').select('user_id').ilike('email', email).neq('user_id', body.userId).limit(1);
+      if (duplicateError) throw duplicateError;
+      if (duplicate?.length) return json({ error: EMAIL_IN_USE }, 409);
+      const { data: previous, error: previousError } = await admin.auth.admin.getUserById(body.userId);
+      if (previousError || !previous.user) return json({ error: 'User account not found' }, 404);
+      // Update the sign-in email first; restore it if the profile write fails.
+      const { error: emailError } = await admin.auth.admin.updateUserById(body.userId, { email, email_confirm: true });
+      if (emailError) return json({ error: /already|registered|exists/i.test(emailError.message) ? EMAIL_IN_USE : emailError.message }, 400);
+      const { error: profileError } = await admin.from('profiles').update({ email }).eq('user_id', body.userId).eq('store_id', caller?.store_id);
+      if (profileError) {
+        await admin.auth.admin.updateUserById(body.userId, { email: previous.user.email, email_confirm: true });
+        throw profileError;
+      }
+      if (body.password !== undefined) {
+        const { error: passwordError } = await admin.auth.admin.updateUserById(body.userId, { password: body.password });
+        if (passwordError) return json({ error: `Email saved, but password was not changed: ${passwordError.message}` }, 400);
+      }
+      return json({ ok: true });
+    }
 
     if (['list_store_admins', 'reset_store_password', 'set_store_status', 'archive_store'].includes(body.action)) {
       if (!owner) return json({ error: 'Only the platform owner can manage stores' }, 403);
