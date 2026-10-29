@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { canOpenScreen, screenEnabled } from './screenAccess';
 describe('role screen controls', () => {
+  it('gives cashiers dashboard access by default while respecting administrator overrides', () => {
+    expect(canOpenScreen(['cashier'], '/dashboard', [])).toBe(true);
+    expect(canOpenScreen(['cashier'], '/dashboard', [{role:'cashier',screen:'/dashboard',enabled:false}])).toBe(false);
+  });
   it('disables a cashier screen when switched off', () => {
     expect(canOpenScreen(['cashier'], '/pos', [{role:'cashier', screen:'/pos', enabled:false}])).toBe(false);
   });
