@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
 import { toast } from 'sonner';
-import { canOpenScreen, type ScreenOverride } from '@/lib/screenAccess';
+import { canOpenScreen, SCREENS, STAFF_ROLES, type ScreenOverride } from '@/lib/screenAccess';
 
 export interface StoreInfo { id: string; name: string }
 
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         : { data: [], error: null };
       if (accessError) {
         console.error('Error fetching screen access:', accessError);
-        setScreenOverrides([]);
+        setScreenOverrides(STAFF_ROLES.flatMap(role => SCREENS.map(screen => ({ role, screen: screen.path, enabled: false }))));
       } else setScreenOverrides((accessRows ?? []) as ScreenOverride[]);
     } catch (error) {
       console.error('Error in fetchUserData:', error);
