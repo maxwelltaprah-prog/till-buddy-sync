@@ -44,17 +44,19 @@ import {
   MoreHorizontal,
   Shield,
   UserPlus,
+  KeyRound,
 } from 'lucide-react';
 import type { Profile, UserRole, AppRole, Branch } from '@/types/database';
 import { ROLE_LABELS } from '@/types/database';
 import { AddUserDialog } from '@/components/admin/AddUserDialog';
+import { RoleScreenDialog } from '@/components/admin/RoleScreenDialog';
 
 interface UserWithRoles extends Profile {
   user_roles: UserRole[];
 }
 
 export default function Users() {
-  const { user: currentUser, hasRole } = useAuth();
+  const { user: currentUser, hasRole, refreshProfile } = useAuth();
   const isAdmin = hasRole('admin');
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -65,6 +67,34 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>('cashier');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showScreenDialog, setShowScreenDialog] = useState(false);
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [accountError, setAccountError] = useState('');
+  const openAccountDialog = (user: UserWithRoles) => {
+    setSelectedUser(user); setAccountEmail(user.email); setAccountPassword(''); setConfirmPassword(''); setAccountError(''); setShowAccountDialog(true);
+  };
+  const saveAccount = async () => {
+    if (!selectedUser) return;
+    if (accountPassword !== confirmPassword) { setAccountError('Passwords do not match'); return; }
+    setIsSubmitting(true); setAccountError('');
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-users', { body: {
+        action: 'update_user_account', userId: selectedUser.user_id, email: accountEmail,
+        ...(accountPassword ? { password: accountPassword } : {}),
+      } });
+      if (error || data?.error) {
+        let message = data?.error;
+        if (!message && error && 'context' in error) { try { message = (await error.context.json()).error; } catch { /* Use fallback below. */ } }
+        throw new Error(message || error?.message || 'Could not update account');
+      }
+      setAccountPassword(''); setConfirmPassword(''); setShowAccountDialog(false);
+      await fetchData(); await refreshProfile(); toast.success('User account updated');
+    } catch (error) { setAccountError(error instanceof Error ? error.message : 'Could not update account'); }
+    finally { setIsSubmitting(false); }
+  };
 
   useEffect(() => {
     fetchData();
@@ -199,16 +229,19 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Users</h1>
           <p className="text-muted-foreground">Manage user accounts and roles</p>
         </div>
         {isAdmin && (
+          <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShowScreenDialog(true)}><Shield className="mr-2 h-4 w-4" />Role screen access</Button>
           <Button onClick={() => setShowAddUserDialog(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add User
           </Button>
+          </div>
         )}
       </div>
 
@@ -311,11 +344,12 @@ export default function Users() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" aria-label={`Actions for ${user.full_name}`}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openAccountDialog(user)}><KeyRound className="mr-2 h-4 w-4" />Edit email &amp; password</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openRoleDialog(user)}>
                             <Shield className="mr-2 h-4 w-4" />
                             Assign Role
@@ -379,6 +413,19 @@ export default function Users() {
       </Dialog>
 
       {/* Add User Dialog */}
+      <RoleScreenDialog open={showScreenDialog} onOpenChange={setShowScreenDialog} />
+      <Dialog open={showAccountDialog} onOpenChange={value => { if (!isSubmitting) { setShowAccountDialog(value); if (!value) { setAccountPassword(''); setConfirmPassword(''); } } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit user account</DialogTitle><DialogDescription>{selectedUser?.full_name}</DialogDescription></DialogHeader>
+          <form className="space-y-4" onSubmit={event => { event.preventDefault(); void saveAccount(); }}>
+            <div className="space-y-2"><Label htmlFor="account-email">Email</Label><Input id="account-email" type="email" required maxLength={254} value={accountEmail} disabled={isSubmitting} onChange={event => setAccountEmail(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="account-password">New password (optional)</Label><Input id="account-password" type="password" autoComplete="new-password" minLength={6} maxLength={128} value={accountPassword} disabled={isSubmitting} onChange={event => setAccountPassword(event.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="account-confirm">Confirm new password</Label><Input id="account-confirm" type="password" autoComplete="new-password" value={confirmPassword} disabled={isSubmitting} onChange={event => setConfirmPassword(event.target.value)} /></div>
+            {accountError && <p role="alert" className="text-sm text-destructive">{accountError}</p>}
+            <DialogFooter><Button type="button" variant="outline" disabled={isSubmitting} onClick={() => { setShowAccountDialog(false); setAccountPassword(''); setConfirmPassword(''); }}>Cancel</Button><Button type="submit" disabled={isSubmitting}>{isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save account</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <AddUserDialog
         open={showAddUserDialog}
         onOpenChange={setShowAddUserDialog}

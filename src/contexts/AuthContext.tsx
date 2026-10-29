@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
 import { toast } from 'sonner';
+import { canOpenScreen, SCREENS, STAFF_ROLES, type ScreenOverride } from '@/lib/screenAccess';
 
 export interface StoreInfo { id: string; name: string }
 
@@ -22,6 +23,8 @@ interface AuthContextType {
   hasAnyRole: (roles: AppRole[]) => boolean;
   hasPermission: (permission: string) => boolean;
   refreshProfile: () => Promise<void>;
+  screenOverrides: ScreenOverride[];
+  canAccessScreen: (path: string) => boolean;
 }
 
 // Reuse one context across hot reloads so provider and consumers always match.
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlatformOwner, setIsPlatformOwner] = useState(false);
   const [store, setStore] = useState<StoreInfo | null>(null);
+  const [screenOverrides, setScreenOverrides] = useState<ScreenOverride[]>([]);
 
   // Fetch user profile and roles
   const fetchUserData = async (userId: string) => {
@@ -89,6 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsPlatformOwner(!!ownerRow);
       setStore(storeRow as StoreInfo | null);
+      const { data: accessRows, error: accessError } = profileData?.store_id
+        ? await supabase.from('role_screen_access').select('role, screen, enabled').eq('store_id', profileData.store_id)
+        : { data: [], error: null };
+      if (accessError) {
+        console.error('Error fetching screen access:', accessError);
+        setScreenOverrides(STAFF_ROLES.flatMap(role => SCREENS.map(screen => ({ role, screen: screen.path, enabled: false }))));
+      } else setScreenOverrides((accessRows ?? []) as ScreenOverride[]);
     } catch (error) {
       console.error('Error in fetchUserData:', error);
     }
@@ -113,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setBranch(null);
           setStore(null);
           setIsPlatformOwner(false);
+          setScreenOverrides([]);
         }
         
         if (event === 'SIGNED_OUT') {
@@ -229,6 +241,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasAnyRole,
     hasPermission,
     refreshProfile,
+    screenOverrides,
+    canAccessScreen: (path) => canOpenScreen(roles, path, screenOverrides, isPlatformOwner),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

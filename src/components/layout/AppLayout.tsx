@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
@@ -9,9 +9,10 @@ import { Loader2, WifiOff } from 'lucide-react';
 import { OfflineStatus } from '@/components/OfflineStatus';
 import { NotificationBell } from './NotificationBell';
 import { useShopSettings } from '@/contexts/ShopSettingsContext';
+import { SCREENS } from '@/lib/screenAccess';
 
 export function AppLayout() {
-  const { user, isLoading, profile, roles, branch, store } = useAuth();
+  const { user, isLoading, profile, roles, branch, store, canAccessScreen } = useAuth();
   const { settings: shopSettings } = useShopSettings();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -37,6 +38,11 @@ export function AppLayout() {
 
   if (!user) {
     return null;
+  }
+  if (!profile) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (!canAccessScreen(pathname)) {
+    const firstScreen = SCREENS.find(screen => canAccessScreen(screen.path));
+    return <Navigate to={firstScreen?.path ?? '/profile'} replace />;
   }
 
   // Check if user has roles assigned
