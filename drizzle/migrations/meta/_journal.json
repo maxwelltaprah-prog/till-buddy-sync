@@ -64,6 +64,13 @@
       "when": 1793287359336,
       "tag": "0008_sale_item_stock_deduction",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793287909870,
+      "tag": "0009_credit_transaction_read_access",
+      "breakpoints": true
     }
   ]
 }

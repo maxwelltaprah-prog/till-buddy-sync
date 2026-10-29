@@ -1,6 +1,6 @@
 # Agent Rules
 - Sale-item insertion deducts outlet stock and logs movements through `deduct_sale_item_stock` atomically; online POS and offline sync must never also deduct inventory client-side, preventing blocked cashier writes, races and double deductions.
-- Creditor PII and credit sales/payments use restrictive branch RLS (admin-only all-branch access); new creditors save the assigned branch, legacy branch membership comes from saved credit sales, and client credit queries fail closed without a staff branch.
+- Creditor PII and credit sales/payments use restrictive branch RLS (admin-only all-branch access); cashiers can read the linked sale for every credit line in their assigned branch, not other branches or stores. New creditors save the assigned branch, legacy branch membership comes from saved credit sales, and client credit queries fail closed without a staff branch.
 - User credential updates go through `manage-users` with same-store administrator validation; role screen overrides live in `role_screen_access` and feed both navigation and route guards. Screen visibility never replaces database operation permissions.
 - Receipt print documents declare UTF-8 and escape saved text before HTML insertion; wait for logos before printing so branding and cedi symbols render correctly.
 - Tax is computed only via `src/lib/tax.ts` from `tax_components` rows — keeps POS, receipts and reports consistent.
@@ -9,5 +9,5 @@
 - Credit ageing status comes only from `src/lib/credit.ts`; repayments go through `credit_payments` (trigger updates the balance) — keeps POS alerts, notifications and the Creditors page consistent.
 - Lists use `usePagination` + `PaginationBar` from `src/components/PaginationBar.tsx` — one consistent pager.
 - Sales and profit reports use `useReportBranch` for local report scope, never changing the user's assigned POS branch; database policies remain the access authority.
-- Historical transaction details reconstruct receipts through `transactionReceipt` using saved sale/item totals and tax breakdowns, never current tax rates, so reprints preserve original amounts.
+- Recent Activity and credit-line transaction details share `TransactionDetailsDialog` and reconstruct receipts through `transactionReceipt` using saved sale/item totals and tax breakdowns, never current tax rates, so reprints preserve original amounts.
 - Store lifecycle and administrator password actions are validated by `manage-users` against platform ownership; inactive/archived store members lose tenant access through `current_store_id`, with transaction guards covering security-definer writes. Store deletion archives records instead of erasing them.
