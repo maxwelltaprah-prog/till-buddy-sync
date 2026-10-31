@@ -71,6 +71,13 @@
       "when": 1793287909870,
       "tag": "0009_credit_transaction_read_access",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793465471428,
+      "tag": "0010_remove_credit_customer",
+      "breakpoints": true
     }
   ]
 }
