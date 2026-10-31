@@ -109,194 +109,85 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome section */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-foreground">
-          Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}
-        </h1>
-        <p className="text-muted-foreground">
-          {roles.length > 0 && ROLE_LABELS[roles[0] as keyof typeof ROLE_LABELS]}
-          {branch && ` • ${branch.name}`}
-        </p>
-      </div>
-
-      <div className="flex justify-end"><Button variant="ghost" size="sm" disabled={isLoading} onClick={() => setRefresh(n => n + 1)}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button></div>
-      {/* Quick actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {(isAdmin || isCashier) && (
-          <Card className="hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group border-2 border-transparent hover:border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">POS Terminal</CardTitle>
-              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <ShoppingCart className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-4">
-                Start processing sales
-              </p>
-              <Button asChild size="sm" className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/20">
-                <Link to="/pos">
-                  Open POS
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {(isAdmin || isStockManager) && (
-          <Card className="hover:shadow-xl hover:shadow-accent/10 transition-all duration-300 group border-2 border-transparent hover:border-accent/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Products</CardTitle>
-              <div className="p-2 rounded-lg bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                <Package className="h-4 w-4 text-accent" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-4">
-                Manage product catalog
-              </p>
-              <Button asChild size="sm" variant="outline" className="w-full border-accent/30 hover:bg-accent/10 hover:text-accent hover:border-accent">
-                <Link to="/products">
-                  View Products
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {(isAdmin || isStockManager) && (
-          <Card className="hover:shadow-xl hover:shadow-success/10 transition-all duration-300 group border-2 border-transparent hover:border-success/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Inventory</CardTitle>
-              <div className="p-2 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
-                <Boxes className="h-4 w-4 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-4">
-                Check stock levels
-              </p>
-              <Button asChild size="sm" variant="outline" className="w-full border-success/30 hover:bg-success/10 hover:text-success hover:border-success">
-                <Link to="/inventory">
-                  View Inventory
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {isAdmin && (
-          <Card className="hover:shadow-xl hover:shadow-warning/10 transition-all duration-300 group border-2 border-transparent hover:border-warning/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Users</CardTitle>
-              <div className="p-2 rounded-lg bg-warning/10 group-hover:bg-warning/20 transition-colors">
-                <Users className="h-4 w-4 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-4">
-                Manage staff accounts
-              </p>
-              <Button asChild size="sm" variant="outline" className="w-full border-warning/30 hover:bg-warning/10 hover:text-warning hover:border-warning">
-                <Link to="/users">
-                  Manage Users
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+    <div className="space-y-8">
+      {/* Welcome banner */}
+      <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary via-primary/90 to-accent p-6 text-primary-foreground shadow-lg shadow-primary/20 md:p-8">
+        <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary-foreground/10 blur-2xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-primary-foreground/10 blur-2xl" />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-primary-foreground/80">{format(new Date(), 'EEEE, d MMMM yyyy')}</p>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              {roles.length > 0 && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{ROLE_LABELS[roles[0] as keyof typeof ROLE_LABELS]}</span>}
+              {branch && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{branch.name}</span>}
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" disabled={isLoading} onClick={() => setRefresh(n => n + 1)} className="shadow-md">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />Refresh
+          </Button>
+        </div>
+      </section>
 
       {/* Stats overview */}
       {loadError ? <ErrorState title="Could not load dashboard" onRetry={() => setRefresh(n => n + 1)} /> : !branch ? <p className="text-sm text-muted-foreground">No branch assigned. Contact your administrator.</p> : (isAdmin || isCashier) && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-success/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">{isCashier && !isAdmin ? "My Sales Today" : "Today's Sales"}</CardTitle>
-              <div className="p-2 rounded-full bg-success/20">
-                <Banknote className="h-4 w-4 text-success" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-success" />
-              ) : (
-                <>
-                  <div className="text-3xl font-bold text-success">{formatPrice(stats.todaySales)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.todayTransactions} transactions
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/20">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Products</CardTitle>
-              <div className="p-2 rounded-full bg-primary/20">
-                <Package className="h-4 w-4 text-primary" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              ) : (
-                <>
-                  <div className="text-3xl font-bold text-primary">{stats.totalProducts}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Available at this branch
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className={`${stats.lowStockItems > 0 ? 'border-warning/30' : 'border-border'}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <div className={`p-2 rounded-full ${stats.lowStockItems > 0 ? 'bg-destructive/20' : 'bg-accent/20'}`}>
-                <Boxes className={`h-4 w-4 ${stats.lowStockItems > 0 ? 'text-destructive' : 'text-accent'}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
-              ) : (
-                <>
-                  <div className={`text-3xl font-bold ${stats.lowStockItems > 0 ? 'text-destructive' : 'text-accent'}`}>
-                    {stats.lowStockItems}
+          {[
+            { title: isCashier && !isAdmin ? 'My Sales Today' : "Today's Sales", icon: Banknote, tone: 'success', value: formatPrice(stats.todaySales), note: `${stats.todayTransactions} transaction${stats.todayTransactions === 1 ? '' : 's'}` },
+            { title: 'Products', icon: Package, tone: 'primary', value: String(stats.totalProducts), note: 'Available at this branch' },
+            { title: 'Low Stock', icon: AlertTriangle, tone: stats.lowStockItems > 0 ? 'destructive' : 'accent', value: String(stats.lowStockItems), note: stats.lowStockItems > 0 ? 'Items need restocking' : 'All items well stocked' },
+            { title: 'Growth', icon: TrendingUp, tone: stats.dayGrowth !== null && stats.dayGrowth < 0 ? 'destructive' : 'warning', value: stats.dayGrowth === null ? '—' : `${stats.dayGrowth > 0 ? '+' : ''}${stats.dayGrowth.toFixed(1)}%`, note: stats.dayGrowth === null ? 'No sales yesterday to compare' : 'Sales vs. yesterday' },
+          ].map(({ title, icon: Icon, tone, value, note }) => {
+            const tones: Record<string, { bar: string; chip: string; text: string }> = {
+              success: { bar: 'bg-success', chip: 'bg-success/15 text-success', text: 'text-success' },
+              primary: { bar: 'bg-primary', chip: 'bg-primary/15 text-primary', text: 'text-primary' },
+              accent: { bar: 'bg-accent', chip: 'bg-accent/15 text-accent', text: 'text-accent' },
+              warning: { bar: 'bg-warning', chip: 'bg-warning/15 text-warning', text: 'text-foreground' },
+              destructive: { bar: 'bg-destructive', chip: 'bg-destructive/15 text-destructive', text: 'text-destructive' },
+            };
+            const t = tones[tone];
+            return (
+              <Card key={title} className="relative overflow-hidden border-border/60 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+                <span aria-hidden className={`absolute inset-x-0 top-0 h-1 ${t.bar}`} />
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${t.chip}`}><Icon className="h-5 w-5" /></div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Items need restocking
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Growth</CardTitle>
-              <div className="p-2 rounded-full bg-warning/20">
-                <TrendingUp className="h-4 w-4 text-warning" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-3xl font-bold tabular-nums ${stats.dayGrowth !== null && stats.dayGrowth < 0 ? 'text-destructive' : 'text-success'}`}>{isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats.dayGrowth === null ? '—' : `${stats.dayGrowth > 0 ? '+' : ''}${stats.dayGrowth.toFixed(1)}%`}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.dayGrowth === null ? "No sales yesterday to compare" : "Sales vs. yesterday"}
-              </p>
-            </CardContent>
-          </Card>
+                  <div className={`mt-3 text-3xl font-bold tracking-tight tabular-nums ${t.text}`}>
+                    {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /> : value}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">{note}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Quick actions */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Quick actions</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { show: isAdmin || isCashier, to: '/pos', title: 'POS Terminal', desc: 'Start processing sales', icon: ShoppingCart, chip: 'bg-primary text-primary-foreground', ring: 'hover:border-primary/40' },
+            { show: isAdmin || isStockManager, to: '/products', title: 'Products', desc: 'Manage product catalog', icon: Package, chip: 'bg-accent text-accent-foreground', ring: 'hover:border-accent/40' },
+            { show: isAdmin || isStockManager, to: '/inventory', title: 'Inventory', desc: 'Check stock levels', icon: Boxes, chip: 'bg-success text-success-foreground', ring: 'hover:border-success/40' },
+            { show: isAdmin, to: '/users', title: 'Users', desc: 'Manage staff accounts', icon: Users, chip: 'bg-warning text-warning-foreground', ring: 'hover:border-warning/40' },
+          ].filter(a => a.show).map(({ to, title, desc, icon: Icon, chip, ring }) => (
+            <Link key={to} to={to} className={`group flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${ring}`}>
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-md ${chip}`}><Icon className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground">{title}</p>
+                <p className="truncate text-xs text-muted-foreground">{desc}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* Branch restock list */}
       {(isAdmin || isCashier) && !loadError && !isLoading && branch && (
