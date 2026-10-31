@@ -255,7 +255,7 @@ export default function Creditors() {
                     <TableCell className="text-right">{Number(c.credit_limit) > 0 ? formatPrice(Number(c.credit_limit)) : 'No limit'}</TableCell>
                     <TableCell className="text-right">{c.default_days}</TableCell>
                     <TableCell className="text-right font-semibold">{formatPrice(customerBalances[c.id] || 0)}</TableCell>
-                    <TableCell className="text-right">{canEdit && <Button size="sm" variant="ghost" onClick={() => openCustomer(c)}>Edit</Button>}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">{canEdit && <Button size="sm" variant="ghost" onClick={() => openCustomer(c)}>Edit</Button>}{hasRole('admin') && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeCustomer(c)}>Remove</Button>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
