@@ -131,11 +131,16 @@ export default function Suppliers() {
     }
 
     setIsSubmitting(true);
+    const payload = {
+      ...formData,
+      name: formData.name.trim(),
+      code: formData.code.trim() || null,
+    };
     try {
       if (editingSupplier) {
         const { error } = await supabase
           .from('suppliers')
-          .update(formData)
+          .update(payload)
           .eq('id', editingSupplier.id);
 
         if (error) throw error;
@@ -143,7 +148,7 @@ export default function Suppliers() {
       } else {
         const { error } = await supabase
           .from('suppliers')
-          .insert(formData);
+          .insert(payload);
 
         if (error) throw error;
         toast.success('Supplier created successfully');
@@ -151,9 +156,13 @@ export default function Suppliers() {
 
       setShowDialog(false);
       fetchSuppliers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving supplier:', error);
-      toast.error('Failed to save supplier');
+      toast.error(
+        error?.code === '23505'
+          ? 'Another supplier already uses this code. Please enter a different code.'
+          : 'Failed to save supplier'
+      );
     } finally {
       setIsSubmitting(false);
     }
