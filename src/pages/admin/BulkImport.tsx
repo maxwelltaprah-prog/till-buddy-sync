@@ -1,4 +1,4 @@
-import { UNIT_VALUES } from '@/lib/units';
+import { UNIT_VALUES, normalizeUnit } from '@/lib/units';
 import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,7 +62,7 @@ export default function BulkImport() {
       if (!raw.sku) errors.push('SKU required');
       if (!raw.name) errors.push('Name required');
       if (raw.retail_price === '' || isNaN(Number(raw.retail_price))) errors.push('Invalid retail price');
-      if (raw.unit && !UNITS.includes(String(raw.unit).toLowerCase())) errors.push('Invalid unit');
+      if (raw.unit) { const u = normalizeUnit(raw.unit); if (u) raw.unit = u; else errors.push(`Invalid unit "${raw.unit}"`); }
       if (raw.mfg_date && !toDate(raw.mfg_date)) errors.push('Mfg date must be YYYY-MM-DD');
       if (raw.expiry_date && !toDate(raw.expiry_date)) errors.push('Expiry date must be YYYY-MM-DD');
       if (raw.sku && seen.has(String(raw.sku))) errors.push('Duplicate SKU in file');
