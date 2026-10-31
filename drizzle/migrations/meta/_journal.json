@@ -78,6 +78,13 @@
       "when": 1793465471428,
       "tag": "0010_remove_credit_customer",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793467298513,
+      "tag": "0011_remove_used_products",
+      "breakpoints": true
     }
   ]
 }

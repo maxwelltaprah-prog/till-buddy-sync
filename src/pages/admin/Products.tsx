@@ -120,6 +120,7 @@ export default function Products() {
         supabase
           .from('products')
           .select('*, category:categories(*), supplier:suppliers(*), bulk_pricing_tiers(*)')
+          .is('removed_at', null)
           .order('name'),
         supabase.from('categories').select('*').eq('is_active', true).order('name'),
         supabase.from('suppliers').select('*').eq('is_active', true).order('name'),
@@ -156,13 +157,13 @@ export default function Products() {
   const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const togglePage = () => setSelected((s) => { const n = new Set(s); pg.pageItems.forEach((p) => allPageSelected ? n.delete(p.id) : n.add(p.id)); return n; });
   const handleBulkDelete = async () => {
-    if (!confirm(`Delete ${selected.size} product(s)? Products that already have sales will be deactivated instead, to keep sales history.`)) return;
+    if (!confirm(`Delete ${selected.size} product(s)? Products with sales history will be removed from your list but kept in past receipts and reports.`)) return;
     setBulkDeleting(true);
     const { data, error } = await supabase.rpc('bulk_delete_products', { p_ids: Array.from(selected) });
     setBulkDeleting(false);
     if (error) { toast.error(error.message); return; }
     const r = (data as any)?.[0] || { deleted: 0, deactivated: 0 };
-    toast.success(`${r.deleted} deleted${r.deactivated ? `, ${r.deactivated} deactivated (have sales history)` : ''}`);
+    toast.success(`${r.deleted} deleted${r.deactivated ? `, ${r.deactivated} removed (sales history kept)` : ''}`);
     setSelected(new Set());
     fetchData();
   };
@@ -266,7 +267,7 @@ export default function Products() {
     if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase.from('products').delete().eq('id', product.id);
+      const { error } = await supabase.rpc('bulk_delete_products', { p_ids: [product.id] });
       if (error) throw error;
       toast.success('Product deleted');
       fetchData();
