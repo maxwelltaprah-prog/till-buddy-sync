@@ -59,13 +59,14 @@ export default function Creditors() {
     let salesQuery = supabase.from('credit_sales').select('*, customer:credit_customers(name, phone)').order('due_date');
     if (scope) salesQuery = salesQuery.eq('branch_id', scope);
     const [c, s] = await Promise.all([
-      supabase.from('credit_customers').select('*').order('name'),
+      supabase.from('credit_customers').select('*').is('removed_at', null).order('name'),
       salesQuery,
     ]);
     if (c.error || s.error) setLoadError(true);
     else {
+      const active = new Set(((c.data as any[]) || []).map((x) => x.id));
       setCustomers((c.data as any) || []);
-      setSales(withStatus((s.data as any) || []));
+      setSales(withStatus(((s.data as any[]) || []).filter((x) => active.has(x.customer_id) || Number(x.amount) - Number(x.amount_paid) > 0.001)));
     }
     setIsLoading(false);
   };
@@ -124,6 +125,16 @@ export default function Creditors() {
     if (error) { toast.error(error.message); return; }
     toast.success(editing ? 'Creditor updated' : 'Creditor added');
     setShowCustomer(false);
+    load();
+  };
+
+  const removeCustomer = async (c: CreditCustomer) => {
+    const owed = customerBalances[c.id] || 0;
+    if (owed > 0.001) { toast.error(`${c.name} still owes ${formatPrice(owed)}. Record full payment before removing.`); return; }
+    if (!window.confirm(`Remove creditor "${c.name}"? Their contact details will be erased and they will no longer appear here.`)) return;
+    const { error } = await supabase.rpc('remove_credit_customer' as any, { p_id: c.id });
+    if (error) { toast.error(error.message); return; }
+    toast.success('Creditor removed');
     load();
   };
 
