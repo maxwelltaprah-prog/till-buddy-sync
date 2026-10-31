@@ -313,6 +313,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          removed_at: string | null
           store_id: string
           updated_at: string
         }
@@ -329,6 +330,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          removed_at?: string | null
           store_id?: string
           updated_at?: string
         }
@@ -345,6 +347,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          removed_at?: string | null
           store_id?: string
           updated_at?: string
         }
@@ -1472,6 +1475,7 @@ export type Database = {
         Returns: boolean
       }
       is_platform_owner: { Args: { _uid: string }; Returns: boolean }
+      remove_credit_customer: { Args: { p_id: string }; Returns: undefined }
       switch_store: { Args: { _store_id: string }; Returns: undefined }
       transfer_stock: {
         Args: {
