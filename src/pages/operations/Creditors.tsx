@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmDialog';
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -131,7 +132,7 @@ export default function Creditors() {
   const removeCustomer = async (c: CreditCustomer) => {
     const owed = customerBalances[c.id] || 0;
     if (owed > 0.001) { toast.error(`${c.name} still owes ${formatPrice(owed)}. Record full payment before removing.`); return; }
-    if (!window.confirm(`Remove creditor "${c.name}"? Their contact details will be erased and they will no longer appear here.`)) return;
+    if (!(await confirmAction({ title: `Remove creditor "${c.name}"?`, description: "Their contact details will be erased and they will no longer appear here. Past sales and receipts are kept.", confirmLabel: "Remove creditor" }))) return;
     const { error } = await supabase.rpc('remove_credit_customer' as any, { p_id: c.id });
     if (error) { toast.error(error.message); return; }
     toast.success('Creditor removed');
