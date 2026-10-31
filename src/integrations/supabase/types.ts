@@ -577,6 +577,7 @@ export type Database = {
           max_stock_level: number | null
           min_stock_level: number | null
           name: string
+          removed_at: string | null
           retail_price: number
           shelf_life_days: number | null
           sku: string
@@ -599,6 +600,7 @@ export type Database = {
           max_stock_level?: number | null
           min_stock_level?: number | null
           name: string
+          removed_at?: string | null
           retail_price?: number
           shelf_life_days?: number | null
           sku: string
@@ -621,6 +623,7 @@ export type Database = {
           max_stock_level?: number | null
           min_stock_level?: number | null
           name?: string
+          removed_at?: string | null
           retail_price?: number
           shelf_life_days?: number | null
           sku?: string
