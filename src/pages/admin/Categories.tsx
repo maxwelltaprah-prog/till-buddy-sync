@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
@@ -173,7 +174,7 @@ export default function Categories() {
       return;
     }
 
-    if (!confirm(`Delete "${category.name}"? This cannot be undone.`)) return;
+    if (!(await confirmAction({ title: `Delete category "${category.name}"?`, description: "This category will be permanently deleted. This cannot be undone.", confirmLabel: "Delete category" }))) return;
 
     try {
       const { error } = await supabase.from('categories').delete().eq('id', category.id);

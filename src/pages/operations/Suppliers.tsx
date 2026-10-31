@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -169,7 +170,7 @@ export default function Suppliers() {
   };
 
   const handleDelete = async (supplier: Supplier) => {
-    if (!confirm(`Are you sure you want to delete "${supplier.name}"?`)) {
+    if (!(await confirmAction({ title: `Delete supplier "${supplier.name}"?`, description: "This supplier will be permanently deleted. This cannot be undone.", confirmLabel: "Delete supplier" }))) {
       return;
     }
 

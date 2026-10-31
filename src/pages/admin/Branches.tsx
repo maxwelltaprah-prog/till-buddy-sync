@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmDialog';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -171,7 +172,7 @@ export default function Branches() {
   };
 
   const handleDelete = async (branch: Branch) => {
-    if (!confirm(`Delete "${branch.name}"? This cannot be undone.`)) return;
+    if (!(await confirmAction({ title: `Delete branch "${branch.name}"?`, description: "This branch will be permanently deleted. This cannot be undone.", confirmLabel: "Delete branch" }))) return;
 
     try {
       const { error } = await supabase.from('branches').delete().eq('id', branch.id);

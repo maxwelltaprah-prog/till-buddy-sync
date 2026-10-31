@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UNIT_OPTIONS } from '@/lib/units';
 import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading } from '@/components/states';
@@ -157,7 +158,7 @@ export default function Products() {
   const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const togglePage = () => setSelected((s) => { const n = new Set(s); pg.pageItems.forEach((p) => allPageSelected ? n.delete(p.id) : n.add(p.id)); return n; });
   const handleBulkDelete = async () => {
-    if (!confirm(`Delete ${selected.size} product(s)? Products with sales history will be removed from your list but kept in past receipts and reports.`)) return;
+    if (!(await confirmAction({ title: `Delete ${selected.size} product(s)?`, description: "Products never sold are deleted permanently. Products with sales history are removed from your list but kept in past receipts and reports.", confirmLabel: "Delete products" }))) return;
     setBulkDeleting(true);
     const { data, error } = await supabase.rpc('bulk_delete_products', { p_ids: Array.from(selected) });
     setBulkDeleting(false);
@@ -264,7 +265,7 @@ export default function Products() {
   };
 
   const handleDelete = async (product: Product) => {
-    if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
+    if (!(await confirmAction({ title: `Delete product "${product.name}"?`, description: "If it was never sold it is deleted permanently; otherwise it is removed from your list and kept in past receipts and reports.", confirmLabel: "Delete product" }))) return;
 
     try {
       const { error } = await supabase.rpc('bulk_delete_products', { p_ids: [product.id] });
