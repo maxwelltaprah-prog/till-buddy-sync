@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { describeSkew, CLOCK_SKEW_KEY } from '@/lib/clockSkew';
 import { Loader2, Store, ShieldCheck } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -22,6 +23,11 @@ export default function Auth() {
   const navigate = useNavigate();
   const { user, signIn, isLoading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const skew = Number(localStorage.getItem(CLOCK_SKEW_KEY));
+    if (skew && !user) toast.error(describeSkew(skew), { duration: 20000 });
+  }, [user]);
 
   // Redirect if already logged in
   useEffect(() => {
