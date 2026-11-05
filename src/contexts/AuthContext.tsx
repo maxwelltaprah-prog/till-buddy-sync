@@ -79,12 +79,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRoles(rolesData.map((r) => r.role as AppRole));
       }
 
-      const [{ data: ownerRow }, { data: storeRow }] = await Promise.all([
+      const loadStoreAccess = () => Promise.all([
         supabase.from('platform_owners').select('user_id').eq('user_id', userId).maybeSingle(),
         profileData?.store_id
           ? supabase.from('stores').select('id, name, is_active, archived_at').eq('id', profileData.store_id).maybeSingle()
-          : Promise.resolve({ data: null }),
+          : Promise.resolve({ data: null, error: null }),
       ]);
+      let [{ data: ownerRow, error: ownerError }, { data: storeRow, error: storeError }] = await loadStoreAccess();
+      // A slow or failed lookup (e.g. a fresh sign-in on a new device) must not look like a closed store: retry first.
+      if (!ownerRow && profileData?.store_id && (ownerError || storeError || !storeRow)) {
+        await new Promise((r) => setTimeout(r, 1500));
+        [{ data: ownerRow, error: ownerError }, { data: storeRow, error: storeError }] = await loadStoreAccess();
+      }
+      if (ownerError || storeError) {
+        console.error('Store access check failed:', ownerError || storeError);
+        return;
+      }
       if (!ownerRow && profileData?.store_id && (!storeRow || !storeRow.is_active || storeRow.archived_at)) {
         setProfile(null); setRoles([]); setBranch(null); setStore(null); setIsPlatformOwner(false);
         await supabase.auth.signOut();
