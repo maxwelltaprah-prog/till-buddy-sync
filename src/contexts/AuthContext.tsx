@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
 import { toast } from 'sonner';
+import { clockSkewSeconds, describeSkew, CLOCK_SKEW_KEY, CLOCK_SKEW_LIMIT_SECONDS } from '@/lib/clockSkew';
 import { canOpenScreen, SCREENS, STAFF_ROLES, type ScreenOverride } from '@/lib/screenAccess';
 
 export interface StoreInfo { id: string; name: string }
@@ -122,6 +123,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+
+        if (event === 'SIGNED_IN' && currentSession?.access_token) {
+          const skew = clockSkewSeconds(currentSession.access_token);
+          if (skew !== null && Math.abs(skew) > CLOCK_SKEW_LIMIT_SECONDS) {
+            localStorage.setItem(CLOCK_SKEW_KEY, String(skew));
+            toast.error(describeSkew(skew), { duration: 20000 });
+          } else {
+            localStorage.removeItem(CLOCK_SKEW_KEY);
+          }
+        }
 
         // Defer Supabase calls with setTimeout to prevent deadlock
         if (currentSession?.user) {
