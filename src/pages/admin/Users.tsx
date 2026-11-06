@@ -166,23 +166,22 @@ export default function Users() {
 
     setIsSubmitting(true);
     try {
-      // First, remove existing roles
-      await supabase.from('user_roles').delete().eq('user_id', selectedUser.user_id);
-
-      // Then, add the new role
-      const { error } = await supabase.from('user_roles').insert({
-        user_id: selectedUser.user_id,
-        role: selectedRole,
-      });
-
-      if (error) throw error;
+      // Roles change on the server in one safe step, so no account is ever left without a role.
+      const { data, error } = await supabase.functions.invoke('manage-users', { body: {
+        action: 'set_user_role', userId: selectedUser.user_id, role: selectedRole,
+      } });
+      if (error || data?.error) {
+        let message = data?.error;
+        if (!message && error && 'context' in error) { try { message = (await error.context.json()).error; } catch { /* Use fallback below. */ } }
+        throw new Error(message || error?.message || 'Failed to assign role');
+      }
 
       toast.success('Role assigned successfully');
       setShowRoleDialog(false);
       fetchData();
     } catch (error) {
       console.error('Error assigning role:', error);
-      toast.error('Failed to assign role');
+      toast.error(error instanceof Error ? error.message : 'Failed to assign role');
     } finally {
       setIsSubmitting(false);
     }
