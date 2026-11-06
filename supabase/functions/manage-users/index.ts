@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { storeActionError } from './storeRules.ts';
-import { accountUpdateError, EMAIL_IN_USE } from './accountRules.ts';
+import { accountUpdateError, roleChangeError, EMAIL_IN_USE } from './accountRules.ts';
 
 const ROLES = ["admin", "branch_supervisor", "stock_manager", "cashier"];
 const json = (body: unknown, status = 200) =>
@@ -26,6 +26,28 @@ Deno.serve(async (req) => {
     const { data: owner, error: ownerError } = await admin.from("platform_owners").select("user_id").eq("user_id", user.id).maybeSingle();
     if (callerError || roleError || ownerError) throw callerError || roleError || ownerError;
     const isAdmin = (callerRoles ?? []).some((r) => r.role === "admin");
+
+    if (body.action === 'set_user_role') {
+      if (typeof body.userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.userId)) return json({ error: 'Select a valid user' }, 400);
+      const [{ data: target, error: targetError }, { data: targetOwner }, { data: activeStore }] = await Promise.all([
+        admin.from('profiles').select('store_id').eq('user_id', body.userId).maybeSingle(),
+        admin.from('platform_owners').select('user_id').eq('user_id', body.userId).maybeSingle(),
+        admin.from('stores').select('is_active, archived_at').eq('id', caller?.store_id ?? '').maybeSingle(),
+      ]);
+      if (targetError) throw targetError;
+      if (!target) return json({ error: 'User not found' }, 404);
+      const ruleError = roleChangeError({ admin: isAdmin, owner: Boolean(owner), callerId: user.id, callerStore: caller?.store_id ?? null, targetId: body.userId, targetStore: target.store_id, targetOwner: Boolean(targetOwner), activeStore: Boolean(activeStore?.is_active && !activeStore.archived_at), role: body.role });
+      if (ruleError) return json({ error: ruleError }, 403);
+      // Add the new role first, then drop the others, so the account is never left without a role.
+      const { data: existingRole } = await admin.from('user_roles').select('id').eq('user_id', body.userId).eq('role', body.role).maybeSingle();
+      if (!existingRole) {
+        const { error: insertError } = await admin.from('user_roles').insert({ user_id: body.userId, role: body.role });
+        if (insertError) throw insertError;
+      }
+      const { error: deleteError } = await admin.from('user_roles').delete().eq('user_id', body.userId).neq('role', body.role);
+      if (deleteError) throw deleteError;
+      return json({ ok: true });
+    }
 
     if (body.action === 'update_user_account') {
       if (typeof body.userId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.userId)) return json({ error: 'Select a valid user' }, 400);
@@ -158,8 +180,14 @@ Deno.serve(async (req) => {
       return json({ error: dup ? IN_USE : cErr.message }, dup ? 409 : 400);
     }
     const uid = created.user.id;
-    await admin.from("profiles").update({ store_id: storeId, branch_id: branchId, full_name: fullName, phone }).eq("user_id", uid);
-    await admin.from("user_roles").insert({ user_id: uid, role });
+    // A half-created account (no store or no role) is unusable, so undo it and report the failure.
+    const { error: profileSetError } = await admin.from("profiles").update({ store_id: storeId, branch_id: branchId, full_name: fullName, phone }).eq("user_id", uid);
+    const { error: roleSetError } = profileSetError ? { error: null } : await admin.from("user_roles").insert({ user_id: uid, role });
+    if (profileSetError || roleSetError) {
+      await admin.auth.admin.deleteUser(uid);
+      if (body.action === "create_store") await admin.from("stores").delete().eq("id", storeId);
+      throw profileSetError || roleSetError;
+    }
     return json({ ok: true, user_id: uid, store_id: storeId });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : String(e) }, 500);
