@@ -17,5 +17,5 @@ export function clockSkewSeconds(accessToken: string, nowMs: number = Date.now()
 export function describeSkew(seconds: number): string {
   const mins = Math.round(Math.abs(seconds) / 60);
   const amount = mins >= 120 ? `${Math.round(mins / 60)} hours` : `${mins} minutes`;
-  return `This computer's clock is ${amount} ${seconds > 0 ? 'ahead' : 'behind'}. Set the date, time and time zone to automatic in Windows Settings > Time & language, then sign in again.`;
+  return `This computer's clock is ${amount} ${seconds > 0 ? 'ahead' : 'behind'}. Turn on automatic date, time and time zone (Windows: Settings > Time & language. Mac: System Settings > General > Date & Time), then sign in again.`;
 }

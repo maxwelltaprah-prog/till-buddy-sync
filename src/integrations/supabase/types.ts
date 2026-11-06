@@ -1478,6 +1478,7 @@ export type Database = {
         Returns: boolean
       }
       is_platform_owner: { Args: { _uid: string }; Returns: boolean }
+      my_store_status: { Args: never; Returns: string }
       remove_credit_customer: { Args: { p_id: string }; Returns: undefined }
       switch_store: { Args: { _store_id: string }; Returns: undefined }
       transfer_stock: {

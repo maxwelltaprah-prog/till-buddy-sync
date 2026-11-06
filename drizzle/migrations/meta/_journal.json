@@ -92,6 +92,20 @@
       "when": 1793887805042,
       "tag": "0012_sync_store_name_from_shop_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793923400800,
+      "tag": "0013_protect_user_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793923433961,
+      "tag": "0014_guard_last_role_allow_account_delete",
+      "breakpoints": true
     }
   ]
 }
