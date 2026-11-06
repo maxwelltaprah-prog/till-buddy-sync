@@ -92,6 +92,13 @@
       "when": 1793887805042,
       "tag": "0012_sync_store_name_from_shop_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793923400800,
+      "tag": "0013_protect_user_roles",
+      "breakpoints": true
     }
   ]
 }
