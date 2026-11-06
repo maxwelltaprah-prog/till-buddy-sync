@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/s
 import { AppSidebar } from './AppSidebar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Loader2, WifiOff } from 'lucide-react';
 import { OfflineStatus } from '@/components/OfflineStatus';
 import { NotificationBell } from './NotificationBell';
@@ -12,7 +13,7 @@ import { useShopSettings } from '@/contexts/ShopSettingsContext';
 import { SCREENS } from '@/lib/screenAccess';
 
 export function AppLayout() {
-  const { user, isLoading, profile, roles, branch, store, canAccessScreen } = useAuth();
+  const { user, isLoading, profile, roles, branch, store, canAccessScreen, accessError, refreshProfile, signOut } = useAuth();
   const { settings: shopSettings } = useShopSettings();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -38,6 +39,24 @@ export function AppLayout() {
 
   if (!user) {
     return null;
+  }
+  // A failed lookup is a connection problem, never "no role": offer a retry instead.
+  if (accessError && (!profile || roles.length === 0)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex max-w-md flex-col items-center gap-4 p-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-warning/20">
+            <WifiOff className="h-8 w-8 text-warning" />
+          </div>
+          <h1 className="text-2xl font-bold">Couldn't load your account</h1>
+          <p className="text-muted-foreground">{accessError}</p>
+          <div className="flex gap-2">
+            <Button onClick={() => void refreshProfile()}>Try again</Button>
+            <Button variant="outline" onClick={() => void signOut()}>Sign out</Button>
+          </div>
+        </div>
+      </div>
+    );
   }
   if (!profile) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!canAccessScreen(pathname)) {

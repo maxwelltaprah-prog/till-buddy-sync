@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data: storeRow } = profileData?.store_id
         ? await supabase.from('stores').select('id, name').eq('id', profileData.store_id).maybeSingle()
         : { data: null };
-      const { data: accessRows, error: accessError } = profileData?.store_id
+      const { data: accessRows, error: screenError } = profileData?.store_id
         ? await supabase.from('role_screen_access').select('role, screen, enabled').eq('store_id', profileData.store_id)
         : { data: [], error: null };
       if (requestId !== requestRef.current) return;
@@ -97,8 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setRoles((rolesRes.data ?? []).map((r) => r.role as AppRole));
       setIsPlatformOwner(owner);
       setStore((storeRow as StoreInfo | null) ?? null);
-      if (accessError) {
-        console.error('Error fetching screen access:', accessError);
+      if (screenError) {
+        console.error("Error fetching screen access:", screenError);
         setScreenOverrides(STAFF_ROLES.flatMap(role => SCREENS.map(screen => ({ role, screen: screen.path, enabled: false }))));
       } else setScreenOverrides((accessRows ?? []) as ScreenOverride[]);
       setAccessError(null);
