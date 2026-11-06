@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, UserRole, AppRole, Branch } from '@/types/database';
@@ -26,6 +26,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   screenOverrides: ScreenOverride[];
   canAccessScreen: (path: string) => boolean;
+  accessError: string | null;
 }
 
 // Reuse one context across hot reloads so provider and consumers always match.
@@ -42,83 +43,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isPlatformOwner, setIsPlatformOwner] = useState(false);
   const [store, setStore] = useState<StoreInfo | null>(null);
   const [screenOverrides, setScreenOverrides] = useState<ScreenOverride[]>([]);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
-  // Fetch user profile and roles
+  const loadedUserRef = useRef<string | null>(null);
+  const requestRef = useRef(0);
+
+  // Load profile, roles and store status together. A failed or slow lookup is retried and never
+  // treated as "no role" or "store closed" — only a confirmed answer from the server changes access.
   const fetchUserData = async (userId: string) => {
+    const requestId = ++requestRef.current;
+    const loadOnce = () => Promise.all([
+      supabase.from('profiles').select('*, branch:branches(*)').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
+      supabase.from('platform_owners').select('user_id').eq('user_id', userId).maybeSingle(),
+      supabase.rpc('my_store_status'),
+    ]);
     try {
-      // Fetch profile with branch
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*, branch:branches(*)')
-        .eq('user_id', userId)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error fetching profile:', profileError);
+      let results = await loadOnce();
+      for (let attempt = 1; attempt < 4 && results.some((r) => r.error); attempt++) {
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
+        if (requestId !== requestRef.current) return;
+        results = await loadOnce();
       }
-
-      if (profileData) {
-        const branchData = profileData.branch as Branch | null;
-        setProfile({
-          ...profileData,
-          branch: branchData ?? undefined,
-        } as Profile);
-        setBranch(branchData);
-      }
-
-      // Fetch roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
-      }
-
-      if (rolesData) {
-        setRoles(rolesData.map((r) => r.role as AppRole));
-      }
-
-      const loadStoreAccess = () => Promise.all([
-        supabase.from('platform_owners').select('user_id').eq('user_id', userId).maybeSingle(),
-        profileData?.store_id
-          ? supabase.from('stores').select('id, name, is_active, archived_at').eq('id', profileData.store_id).maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-      let [{ data: ownerRow, error: ownerError }, { data: storeRow, error: storeError }] = await loadStoreAccess();
-      // A slow or failed lookup (e.g. a fresh sign-in on a new device) must not look like a closed store: retry first.
-      if (!ownerRow && profileData?.store_id && (ownerError || storeError || !storeRow)) {
-        await new Promise((r) => setTimeout(r, 1500));
-        [{ data: ownerRow, error: ownerError }, { data: storeRow, error: storeError }] = await loadStoreAccess();
-      }
-      if (ownerError || storeError) {
-        console.error('Store access check failed:', ownerError || storeError);
+      if (requestId !== requestRef.current) return;
+      const [profileRes, rolesRes, ownerRes, statusRes] = results;
+      const failed = results.find((r) => r.error)?.error;
+      if (failed) {
+        console.error('Account load failed:', failed);
+        setAccessError("We couldn't load your account. Check your internet connection and try again.");
         return;
       }
-      if (!ownerRow && profileData?.store_id && (!storeRow || !storeRow.is_active || storeRow.archived_at)) {
+      const profileData = profileRes.data;
+      const owner = !!ownerRes.data;
+      const status = statusRes.data as string | null;
+      if (!owner && profileData?.store_id && (status === 'inactive' || status === 'archived')) {
         setProfile(null); setRoles([]); setBranch(null); setStore(null); setIsPlatformOwner(false);
+        loadedUserRef.current = null;
         await supabase.auth.signOut();
         toast.error('Your store is inactive or archived. Contact the platform owner.');
         return;
       }
-      setIsPlatformOwner(!!ownerRow);
-      setStore(storeRow as StoreInfo | null);
+      const { data: storeRow } = profileData?.store_id
+        ? await supabase.from('stores').select('id, name').eq('id', profileData.store_id).maybeSingle()
+        : { data: null };
       const { data: accessRows, error: accessError } = profileData?.store_id
         ? await supabase.from('role_screen_access').select('role, screen, enabled').eq('store_id', profileData.store_id)
         : { data: [], error: null };
+      if (requestId !== requestRef.current) return;
+
+      const branchData = (profileData?.branch ?? null) as Branch | null;
+      setProfile(profileData ? ({ ...profileData, branch: branchData ?? undefined } as Profile) : null);
+      setBranch(branchData);
+      setRoles((rolesRes.data ?? []).map((r) => r.role as AppRole));
+      setIsPlatformOwner(owner);
+      setStore((storeRow as StoreInfo | null) ?? null);
       if (accessError) {
         console.error('Error fetching screen access:', accessError);
         setScreenOverrides(STAFF_ROLES.flatMap(role => SCREENS.map(screen => ({ role, screen: screen.path, enabled: false }))));
       } else setScreenOverrides((accessRows ?? []) as ScreenOverride[]);
+      setAccessError(null);
+      loadedUserRef.current = userId;
     } catch (error) {
       console.error('Error in fetchUserData:', error);
+      if (requestId === requestRef.current) setAccessError("We couldn't load your account. Check your internet connection and try again.");
     }
+  };
+
+  const clearUserData = () => {
+    requestRef.current++;
+    loadedUserRef.current = null;
+    setProfile(null); setRoles([]); setBranch(null); setStore(null);
+    setIsPlatformOwner(false); setScreenOverrides([]); setAccessError(null);
   };
 
   // Initialize auth state
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
@@ -134,37 +133,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Defer Supabase calls with setTimeout to prevent deadlock
-        if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserData(currentSession.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRoles([]);
-          setBranch(null);
-          setStore(null);
-          setIsPlatformOwner(false);
-          setScreenOverrides([]);
-        }
-        
-        if (event === 'SIGNED_OUT') {
-          setProfile(null);
-          setRoles([]);
-          setBranch(null);
-        }
+        const uid = currentSession?.user?.id;
+        if (!uid) { clearUserData(); return; }
+        // Token refreshes don't change who is signed in; only load when the account changes.
+        if (loadedUserRef.current === uid && event !== 'USER_UPDATED') return;
+        if (loadedUserRef.current !== uid) setIsLoading(true);
+        // Defer Supabase calls to avoid a deadlock inside the auth callback.
+        setTimeout(() => { void fetchUserData(uid).finally(() => setIsLoading(false)); }, 0);
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
-      
       if (existingSession?.user) {
-        fetchUserData(existingSession.user.id).finally(() => {
-          setIsLoading(false);
-        });
+        fetchUserData(existingSession.user.id).finally(() => setIsLoading(false));
       } else {
         setIsLoading(false);
       }
@@ -263,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     hasPermission,
     refreshProfile,
     screenOverrides,
+    accessError,
     canAccessScreen: (path) => canOpenScreen(roles, path, screenOverrides, isPlatformOwner),
   };
 
