@@ -349,7 +349,7 @@ export default function Users() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openAccountDialog(user)}><KeyRound className="mr-2 h-4 w-4" />Edit email &amp; password</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openRoleDialog(user)}>
+                          <DropdownMenuItem onClick={() => openRoleDialog(user)} disabled={isCurrentUser}>
                             <Shield className="mr-2 h-4 w-4" />
                             Assign Role
                           </DropdownMenuItem>
