@@ -18,3 +18,18 @@ describe('cashier dashboard metrics', () => {
     expect(result.low.map(row => row.quantity)).toEqual([5]);
   });
 });
+import { consolidateBranches, totalUnits } from './dashboardMetrics';
+describe('admin all-branches consolidation', () => {
+  it('sums one product across branches into a single entry', () => {
+    const p = { name: 'Rice', sku: 'R1', min_stock_level: 10, is_active: true };
+    const rows = consolidateBranches([
+      { product_id: 'a', quantity: 4, is_available: true, product: p },
+      { product_id: 'a', quantity: 8, is_available: true, product: p },
+      { product_id: 'b', quantity: 3, is_available: false, product: p },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].quantity).toBe(12);
+    expect(totalUnits(rows)).toBe(12);
+    expect(dashboardStock(rows).low).toHaveLength(0);
+  });
+});

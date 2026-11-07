@@ -22,9 +22,10 @@ import {
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/types/database';
 import { TransactionDetailsDialog } from '@/components/TransactionDetailsDialog';
-import { dashboardStock, salesGrowth, type StockEntry } from '@/lib/dashboardMetrics';
+import { dashboardStock, salesGrowth, consolidateBranches, totalUnits, type StockEntry } from '@/lib/dashboardMetrics';
 import { ErrorState } from '@/components/states';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, RefreshCw } from 'lucide-react';
 
 interface DashboardStats {
@@ -55,6 +56,10 @@ export default function Dashboard() {
   const isCashier = roles.includes('cashier');
   const isStockManager = roles.includes('stock_manager');
   const [refresh, setRefresh] = useState(0);
+  const [scope, setScope] = useState<'branch' | 'all'>('branch');
+  const allBranches = isAdmin && scope === 'all';
+  const [units, setUnits] = useState(0);
+  const [branchCount, setBranchCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -67,16 +72,17 @@ export default function Dashboard() {
         const today = new Date();
         let salesQuery = supabase.from('sales')
           .select('id, total, receipt_number, created_at')
-          .eq('store_id', store.id).eq('branch_id', branch.id).eq('status', 'completed')
+          .eq('store_id', store.id).eq('status', 'completed')
           .gte('created_at', startOfDay(subDays(today, 1)).toISOString())
           .lte('created_at', endOfDay(today).toISOString()).order('created_at', { ascending: false });
         // Cashiers see their own sales only; branch stock is shared for restocking.
+        if (!allBranches) salesQuery = salesQuery.eq('branch_id', branch.id);
         if (!isAdmin && isCashier) salesQuery = salesQuery.eq('cashier_id', user.id);
         const [salesResult, inventoryResult] = await Promise.all([
           salesQuery,
           supabase.from('branch_inventory')
-            .select('product_id, quantity, is_available, product:products(name, sku, min_stock_level, is_active)')
-            .eq('store_id', store.id).eq('branch_id', branch.id),
+            .select('product_id, branch_id, quantity, is_available, product:products(name, sku, min_stock_level, is_active, removed_at)')
+            .eq('store_id', store.id).eq(allBranches ? 'store_id' : 'branch_id', allBranches ? store.id : branch.id),
         ]);
         if (salesResult.error) throw salesResult.error;
         if (inventoryResult.error) throw inventoryResult.error;
@@ -85,7 +91,12 @@ export default function Dashboard() {
         const yesterday = (salesResult.data ?? []).filter(sale => sale.created_at && sale.created_at < todayStart);
         const todayTotal = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
         const yesterdayTotal = yesterday.reduce((sum, sale) => sum + Number(sale.total), 0);
-        const stock = dashboardStock(inventoryResult.data ?? []);
+        const invRows = ((inventoryResult.data ?? []) as (StockEntry & { branch_id: string; product: (StockEntry['product'] & { removed_at?: string | null }) | null })[])
+          .filter(row => !row.product?.removed_at);
+        const scoped = allBranches ? consolidateBranches(invRows) : invRows;
+        const stock = dashboardStock(scoped);
+        setUnits(totalUnits(scoped.filter(e => e.is_available && e.product?.is_active && Number(e.quantity ?? 0) > 0)));
+        setBranchCount(new Set(invRows.filter(row => Number(row.quantity ?? 0) > 0).map(row => row.branch_id)).size);
         if (!active) return;
         setLowStock(stock.low);
         setRecentSales(sales.slice(0,5).map(sale => ({ id:sale.id, receipt:sale.receipt_number, total:sale.total, time:sale.created_at ? format(new Date(sale.created_at),'HH:mm') : '—' })));
@@ -98,11 +109,11 @@ export default function Dashboard() {
     void load();
     const interval = window.setInterval(() => void load(), 60000);
     return () => { active = false; window.clearInterval(interval); };
-  }, [branch?.id, store?.id, user?.id, isAdmin, isCashier, refresh]);
+  }, [branch?.id, store?.id, user?.id, isAdmin, isCashier, refresh, allBranches]);
 
   const copyRestockList = async () => {
     try {
-      const text = `Restock request — ${branch?.name || 'Branch'}\n${format(new Date(), 'dd MMM yyyy')}\n\n` + lowStock.map(item => `${item.product?.name} (${item.product?.sku}) — stock: ${item.quantity ?? 0}, minimum: ${item.product?.min_stock_level ?? 0}`).join('\n');
+      const text = `Restock request — ${allBranches ? 'All branches' : branch?.name || 'Branch'}\n${format(new Date(), 'dd MMM yyyy')}\n\n` + lowStock.map(item => `${item.product?.name} (${item.product?.sku}) — stock: ${item.quantity ?? 0}, minimum: ${item.product?.min_stock_level ?? 0}`).join('\n');
       await navigator.clipboard.writeText(text);
       toast.success('Restock list copied for your administrator or warehouse team');
     } catch { toast.error('Could not copy the restock list. Please try again.'); }
@@ -122,7 +133,13 @@ export default function Dashboard() {
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {roles.length > 0 && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{ROLE_LABELS[roles[0] as keyof typeof ROLE_LABELS]}</span>}
-              {branch && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{branch.name}</span>}
+              {branch && !isAdmin && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{branch.name}</span>}
+              {branch && isAdmin && (
+                <Select value={scope} onValueChange={v => setScope(v as 'branch' | 'all')}>
+                  <SelectTrigger aria-label="Dashboard branch scope" className="h-7 w-auto gap-2 rounded-full border-0 bg-primary-foreground/15 px-3 text-xs font-medium text-primary-foreground backdrop-blur"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="branch">{branch.name}</SelectItem><SelectItem value="all">All branches</SelectItem></SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <Button variant="secondary" size="sm" disabled={isLoading} onClick={() => setRefresh(n => n + 1)} className="shadow-md">
@@ -136,7 +153,7 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
             { title: isCashier && !isAdmin ? 'My Sales Today' : "Today's Sales", icon: Banknote, tone: 'success', value: formatPrice(stats.todaySales), note: `${stats.todayTransactions} transaction${stats.todayTransactions === 1 ? '' : 's'}` },
-            { title: 'Products', icon: Package, tone: 'primary', value: String(stats.totalProducts), note: 'Available at this branch' },
+            { title: 'Products', icon: Package, tone: 'primary', value: String(stats.totalProducts), note: allBranches ? `${units.toLocaleString('en-US')} units across ${branchCount} branch${branchCount === 1 ? '' : 'es'}` : `${units.toLocaleString('en-US')} units at this branch` },
             { title: 'Low Stock', icon: AlertTriangle, tone: stats.lowStockItems > 0 ? 'destructive' : 'accent', value: String(stats.lowStockItems), note: stats.lowStockItems > 0 ? 'Items need restocking' : 'All items well stocked' },
             { title: 'Growth', icon: TrendingUp, tone: stats.dayGrowth !== null && stats.dayGrowth < 0 ? 'destructive' : 'warning', value: stats.dayGrowth === null ? '—' : `${stats.dayGrowth > 0 ? '+' : ''}${stats.dayGrowth.toFixed(1)}%`, note: stats.dayGrowth === null ? 'No sales yesterday to compare' : 'Sales vs. yesterday' },
           ].map(({ title, icon: Icon, tone, value, note }) => {
@@ -193,7 +210,7 @@ export default function Dashboard() {
       {(isAdmin || isCashier) && !loadError && !isLoading && branch && (
         <section aria-labelledby="restock-heading" className="border-y bg-card">
           <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-            <div><h2 id="restock-heading" className="flex items-center gap-2 text-lg font-semibold"><AlertTriangle className="h-5 w-5 text-warning" />Restock watchlist <span className="text-sm font-normal text-muted-foreground">({lowStock.length})</span></h2><p className="mt-1 text-sm text-muted-foreground">{branch.name} · At or below minimum stock</p></div>
+            <div><h2 id="restock-heading" className="flex items-center gap-2 text-lg font-semibold"><AlertTriangle className="h-5 w-5 text-warning" />Restock watchlist <span className="text-sm font-normal text-muted-foreground">({lowStock.length})</span></h2><p className="mt-1 text-sm text-muted-foreground">{allBranches ? 'All branches (combined stock)' : branch.name} · At or below minimum stock</p></div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" disabled={!lowStock.length} onClick={() => void copyRestockList()}><Copy className="mr-2 h-4 w-4" />Copy restock list</Button>
               {canAccessScreen('/inventory') && <Button asChild variant="ghost" size="sm"><Link to="/inventory">Inventory<ArrowRight className="ml-2 h-4 w-4" /></Link></Button>}
