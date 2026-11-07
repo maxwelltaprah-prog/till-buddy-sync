@@ -3,6 +3,7 @@ import { EmptyState, ErrorState, TableLoadingRows, TableStateRow, CardsLoading }
 import { useCurrency } from '@/hooks/useCurrency';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranchScope } from '@/hooks/useBranchScope';
 import { supabase } from '@/integrations/supabase/client';
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ type OperationType = 'receive' | 'adjustment' | 'transfer_out';
 export default function InventoryManagement() {
   const { formatPrice } = useCurrency();
   const { branch, hasPermission } = useAuth();
+  const { allBranches } = useBranchScope();
   const [loadError, setLoadError] = useState(false);
   
   const [inventory, setInventory] = useState<BranchInventory[]>([]);
@@ -77,20 +79,22 @@ export default function InventoryManagement() {
     if (branch) {
       fetchInventory();
     }
-  }, [branch]);
+  }, [branch, allBranches]);
 
   const fetchInventory = async () => {
     try {
       setIsLoading(true);
       setLoadError(false);
-      const { data, error } = await supabase
+      let query = supabase
         .from('branch_inventory')
         .select(`
           *,
-          product:products(*)
+          product:products(*),
+          branch:branches(name)
         `)
-        .eq('branch_id', branch!.id)
         .order('quantity', { ascending: true });
+      if (!allBranches) query = query.eq('branch_id', branch!.id);
+      const { data, error } = await query;
 
       if (error) throw error;
       setInventory(data as BranchInventory[]);
@@ -168,7 +172,7 @@ export default function InventoryManagement() {
       const { error: movementError } = await supabase
         .from('stock_movements')
         .insert({
-          branch_id: branch!.id,
+          branch_id: selectedItem.branch_id,
           product_id: selectedItem.product.id,
           operation_type: operationType,
           quantity: movementQuantity,
@@ -237,7 +241,7 @@ export default function InventoryManagement() {
         <div>
           <h1 className="text-2xl font-bold">Inventory Management</h1>
           <p className="text-muted-foreground">
-            Manage stock levels for {branch.name}
+            Manage stock levels for {allBranches ? 'all branches' : branch.name}
           </p>
         </div>
         <Button onClick={fetchInventory} variant="outline">
@@ -317,6 +321,7 @@ export default function InventoryManagement() {
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead>SKU</TableHead>
+                {allBranches && <TableHead>Branch</TableHead>}
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead className="text-right">Min Level</TableHead>
                 <TableHead>Status</TableHead>
@@ -345,6 +350,7 @@ export default function InventoryManagement() {
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.product.name}</TableCell>
                       <TableCell className="text-muted-foreground">{item.product.sku}</TableCell>
+                      {allBranches && <TableCell className="text-muted-foreground">{(item as BranchInventory & { branch?: { name: string } | null }).branch?.name ?? '—'}</TableCell>}
                       <TableCell className="text-right font-mono">{item.quantity}</TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground">
                         {item.product.min_stock_level}

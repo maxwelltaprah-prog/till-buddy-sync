@@ -25,7 +25,7 @@ import { TransactionDetailsDialog } from '@/components/TransactionDetailsDialog'
 import { dashboardStock, salesGrowth, consolidateBranches, totalUnits, type StockEntry } from '@/lib/dashboardMetrics';
 import { ErrorState } from '@/components/states';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useBranchScope } from '@/hooks/useBranchScope';
 import { Copy, RefreshCw } from 'lucide-react';
 
 interface DashboardStats {
@@ -56,8 +56,7 @@ export default function Dashboard() {
   const isCashier = roles.includes('cashier');
   const isStockManager = roles.includes('stock_manager');
   const [refresh, setRefresh] = useState(0);
-  const [scope, setScope] = useState<'branch' | 'all'>('branch');
-  const allBranches = isAdmin && scope === 'all';
+  const { allBranches } = useBranchScope();
   const [units, setUnits] = useState(0);
   const [branchCount, setBranchCount] = useState(0);
 
@@ -134,12 +133,7 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {roles.length > 0 && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{ROLE_LABELS[roles[0] as keyof typeof ROLE_LABELS]}</span>}
               {branch && !isAdmin && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{branch.name}</span>}
-              {branch && isAdmin && (
-                <Select value={scope} onValueChange={v => setScope(v as 'branch' | 'all')}>
-                  <SelectTrigger aria-label="Dashboard branch scope" className="h-7 w-auto gap-2 rounded-full border-0 bg-primary-foreground/15 px-3 text-xs font-medium text-primary-foreground backdrop-blur"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="branch">{branch.name}</SelectItem><SelectItem value="all">All branches</SelectItem></SelectContent>
-                </Select>
-              )}
+              {branch && isAdmin && <span className="rounded-full bg-primary-foreground/15 px-3 py-1 font-medium backdrop-blur">{allBranches ? 'All branches' : branch.name}</span>}
             </div>
           </div>
           <Button variant="secondary" size="sm" disabled={isLoading} onClick={() => setRefresh(n => n + 1)} className="shadow-md">

@@ -9,6 +9,7 @@
 - Store isolation: tenant tables carry `store_id` (default `current_store_id()`) guarded by RESTRICTIVE RLS; users are created only via the `manage-users` function — keeps stores separate and roles server-assigned.
 - Credit ageing status comes only from `src/lib/credit.ts`; repayments go through `credit_payments` (trigger updates the balance) — keeps POS alerts, notifications and the Creditors page consistent.
 - Lists use `usePagination` + `PaginationBar` from `src/components/PaginationBar.tsx` — one consistent pager.
+- Admins pick a branch or "All branches" in the header; "All branches" is a local `useBranchScope` view flag that Products, Inventory, Stock Movements, Dashboard and reports follow, never clearing the assigned POS branch.
 - Sales and profit reports use `useReportBranch` for local report scope, never changing the user's assigned POS branch; database policies remain the access authority.
 - Recent Activity and credit-line transaction details share `TransactionDetailsDialog` and reconstruct receipts through `transactionReceipt` using saved sale/item totals and tax breakdowns, never current tax rates, so reprints preserve original amounts.
 - Store lifecycle and administrator password actions are validated by `manage-users` against platform ownership; inactive/archived store members lose tenant access through `current_store_id`, with transaction guards covering security-definer writes. Store deletion archives records instead of erasing them.

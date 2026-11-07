@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useBranchScope, setAllBranchesView } from '@/hooks/useBranchScope';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,8 +29,12 @@ export function AppLayout() {
     supabase.from('branches').select('id, name').eq('is_active', true).order('name')
       .then(({ data }) => setBranchList(data || []));
   }, [isAdmin, store?.id]);
+  const { allBranches } = useBranchScope();
   const switchBranch = async (id: string) => {
-    if (!user || id === branch?.id) return;
+    if (id === '__all__') { setAllBranchesView(true); toast.success('Showing all branches'); return; }
+    const wasAll = allBranches;
+    setAllBranchesView(false);
+    if (!user || id === branch?.id) { if (wasAll) toast.success(`Showing ${branch?.name ?? 'branch'}`); return; }
     const { error } = await supabase.from('profiles').update({ branch_id: id }).eq('user_id', user.id);
     if (error) { toast.error('Could not switch branch'); return; }
     await refreshProfile();
@@ -109,11 +114,11 @@ export function AppLayout() {
             {(shopSettings.shop_name || store?.name) && <span className="font-medium text-foreground">{shopSettings.shop_name || store?.name}</span>}
             {store && (branch || (isAdmin && branchList.length > 0)) && <span className="text-muted-foreground">/</span>}
             {isAdmin && branchList.length > 0 ? (
-              <Select value={branch?.id ?? ''} onValueChange={switchBranch}>
+              <Select value={allBranches ? '__all__' : branch?.id ?? ''} onValueChange={switchBranch}>
                 <SelectTrigger className="h-8 w-auto min-w-[150px] gap-2 text-sm" aria-label="Switch branch">
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
-                <SelectContent>{branchList.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                <SelectContent><SelectItem value="__all__">All branches</SelectItem>{branchList.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
               </Select>
             ) : branch && (
               <Badge variant="secondary" className="font-normal">
