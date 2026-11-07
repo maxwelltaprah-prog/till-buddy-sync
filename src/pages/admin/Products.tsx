@@ -362,7 +362,7 @@ export default function Products() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
+          <p className="text-muted-foreground">{scopeBranchId ? `Products stocked at ${scopeBranchName}` : "Manage your product catalog · All branches"}</p>
         </div>
         {canManage && (
           <Dialog open={showDialog} onOpenChange={(open) => {
