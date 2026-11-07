@@ -6,7 +6,7 @@ export interface StockEntry {
 }
 
 export function dashboardStock(entries: StockEntry[]) {
-  const active = entries.filter(entry => entry.is_available && entry.product?.is_active);
+  const active = entries.filter(entry => entry.is_available && entry.product?.is_active && Number(entry.quantity ?? 0) > 0);
   const low = active.filter(entry => Number(entry.quantity ?? 0) <= Number(entry.product?.min_stock_level ?? 0))
     .sort((a, b) => Number(a.quantity ?? 0) - Number(b.quantity ?? 0));
   return { totalProducts: active.length, low };
