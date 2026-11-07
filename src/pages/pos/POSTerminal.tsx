@@ -143,7 +143,9 @@ export default function POSTerminal() {
           .lt('expiry_date', today);
         expired?.forEach((b) => expiredMap.set(b.product_id, (expiredMap.get(b.product_id) || 0) + Number(b.quantity)));
       }
-      const list = ((data as ProductWithInventory[]) || []).map((p) => {
+      // Only products actually stocked (received/transferred) at this branch are shown.
+      const stocked = ((data as ProductWithInventory[]) || []).filter((p) => !branch || Number(p.branch_inventory?.[0]?.quantity || 0) > 0);
+      const list = stocked.map((p) => {
         const expiredQty = expiredMap.get(p.id) || 0;
         if (!expiredQty) return p;
         const inv = p.branch_inventory?.[0];

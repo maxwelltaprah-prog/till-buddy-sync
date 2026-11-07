@@ -73,6 +73,8 @@ export default function BulkImport() {
 
   const valid = rows.filter((r) => r.errors.length === 0);
 
+  const [stockMode, setStockMode] = useState<'replace' | 'add'>('replace');
+
   const runImport = async () => {
     if (!valid.length) return;
     setBusy(true);
@@ -107,7 +109,7 @@ export default function BulkImport() {
       }
       if (branchId) {
         const stockRows = valid.map(({ raw }) => ({ raw, qty: Number(raw.opening_stock), pid: ids.get(String(raw.sku)) }))
-          .filter((r) => r.qty > 0 && r.pid) as { raw: Record<string, any>; qty: number; pid: string }[];
+          .filter((r) => r.pid && String(r.raw.opening_stock ?? '').trim() !== '' && Number.isFinite(r.qty) && r.qty >= 0 && (stockMode === 'replace' || r.qty > 0)) as { raw: Record<string, any>; qty: number; pid: string }[];
         const invMap = new Map<string, { id: string; quantity: number }>();
         for (let i = 0; i < stockRows.length; i += 200) {
           const { data, error } = await supabase.from('branch_inventory').select('id, product_id, quantity')
@@ -115,6 +117,7 @@ export default function BulkImport() {
           if (error) throw error;
           data?.forEach((d) => invMap.set(d.product_id, { id: d.id, quantity: Number(d.quantity) }));
         }
+        const prevQty = (pid: string) => invMap.get(pid)?.quantity ?? 0;
         const missing = stockRows.filter((r) => !invMap.has(r.pid));
         for (let i = 0; i < missing.length; i += 200) {
           const { error } = await supabase.from('branch_inventory').insert(missing.slice(i, i + 200).map((r) => ({ branch_id: branchId, product_id: r.pid, quantity: r.qty })));
@@ -124,12 +127,16 @@ export default function BulkImport() {
         for (let i = 0; i < existing.length; i += 20) {
           const results = await Promise.all(existing.slice(i, i + 20).map((r) => {
             const inv = invMap.get(r.pid)!;
-            return supabase.from('branch_inventory').update({ quantity: inv.quantity + r.qty }).eq('id', inv.id);
+            return supabase.from('branch_inventory').update({ quantity: stockMode === 'replace' ? r.qty : inv.quantity + r.qty }).eq('id', inv.id);
           }));
           const err = results.find((x) => x.error)?.error; if (err) throw err;
         }
-        const movements = stockRows.map((r) => ({ branch_id: branchId, product_id: r.pid, operation_type: 'receive' as const, quantity: r.qty, reason: 'Bulk import opening stock', performed_by: user?.id }));
-        const batches = stockRows.filter(({ raw }) => raw.mfg_date || raw.expiry_date || raw.batch_number)
+        const movements = stockRows
+          .map((r) => stockMode === 'replace'
+            ? { branch_id: branchId, product_id: r.pid, operation_type: 'adjustment' as const, quantity: r.qty - prevQty(r.pid), reason: `Bulk import stock count (was ${prevQty(r.pid)}, now ${r.qty})`, performed_by: user?.id }
+            : { branch_id: branchId, product_id: r.pid, operation_type: 'receive' as const, quantity: r.qty, reason: 'Bulk import added stock', performed_by: user?.id })
+          .filter((m) => m.quantity !== 0);
+        const batches = stockRows.filter(({ raw, qty }) => qty > 0 &&  raw.mfg_date || raw.expiry_date || raw.batch_number)
           .map(({ raw, qty, pid }) => ({ branch_id: branchId, product_id: pid, quantity: qty, batch_number: raw.batch_number ? String(raw.batch_number) : null, mfg_date: toDate(raw.mfg_date), expiry_date: toDate(raw.expiry_date), created_by: user?.id }));
         for (let i = 0; i < movements.length; i += 200) {
           const { error } = await supabase.from('stock_movements').insert(movements.slice(i, i + 200)); if (error) throw error;
@@ -169,6 +176,16 @@ export default function BulkImport() {
             <Select value={branchId} onValueChange={setBranchId}>
               <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Quantity in file</Label>
+            <Select value={stockMode} onValueChange={(v) => setStockMode(v as 'replace' | 'add')}>
+              <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="replace">Replace with counted quantity</SelectItem>
+                <SelectItem value="add">Add to current quantity</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <Button onClick={runImport} disabled={busy || !valid.length}>
