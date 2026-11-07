@@ -1,4 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
@@ -18,6 +21,20 @@ export function AppLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isFullBleed = pathname === '/pos';
+  const isAdmin = roles.includes('admin' as any);
+  const [branchList, setBranchList] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (!isAdmin || !store?.id) return;
+    supabase.from('branches').select('id, name').eq('is_active', true).order('name')
+      .then(({ data }) => setBranchList(data || []));
+  }, [isAdmin, store?.id]);
+  const switchBranch = async (id: string) => {
+    if (!user || id === branch?.id) return;
+    const { error } = await supabase.from('profiles').update({ branch_id: id }).eq('user_id', user.id);
+    if (error) { toast.error('Could not switch branch'); return; }
+    await refreshProfile();
+    toast.success(`Switched to ${branchList.find((b) => b.id === id)?.name ?? 'branch'}`);
+  };
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -90,8 +107,15 @@ export function AppLayout() {
           <Separator orientation="vertical" className="h-4" />
           <div className="flex flex-1 items-center gap-2 text-sm">
             {(shopSettings.shop_name || store?.name) && <span className="font-medium text-foreground">{shopSettings.shop_name || store?.name}</span>}
-            {store && branch && <span className="text-muted-foreground">/</span>}
-            {branch && (
+            {store && (branch || (isAdmin && branchList.length > 0)) && <span className="text-muted-foreground">/</span>}
+            {isAdmin && branchList.length > 0 ? (
+              <Select value={branch?.id ?? ''} onValueChange={switchBranch}>
+                <SelectTrigger className="h-8 w-auto min-w-[150px] gap-2 text-sm" aria-label="Switch branch">
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>{branchList.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+              </Select>
+            ) : branch && (
               <Badge variant="secondary" className="font-normal">
                 {branch.name}
               </Badge>
