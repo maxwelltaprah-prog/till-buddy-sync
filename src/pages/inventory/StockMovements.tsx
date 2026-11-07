@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useBranchScope } from '@/hooks/useBranchScope';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
@@ -62,6 +63,7 @@ const OPERATION_ICONS: Record<Enums<'stock_operation_type'>, React.ElementType> 
 
 export default function StockMovements() {
   const { branch } = useAuth();
+  const { allBranches } = useBranchScope();
   
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,20 +74,21 @@ export default function StockMovements() {
     if (branch) {
       fetchMovements();
     }
-  }, [branch]);
+  }, [branch, allBranches]);
 
   const fetchMovements = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('stock_movements')
         .select(`
           *,
           product:products(*)
         `)
-        .eq('branch_id', branch!.id)
         .order('created_at', { ascending: false })
         .limit(500);
+      if (!allBranches) query = query.eq('branch_id', branch!.id);
+      const { data, error } = await query;
 
       if (error) throw error;
       setMovements(data as StockMovement[]);
@@ -142,7 +145,7 @@ export default function StockMovements() {
         <div>
           <h1 className="text-2xl font-bold">Stock Movements</h1>
           <p className="text-muted-foreground">
-            Track all inventory changes for {branch.name}
+            Track all inventory changes for {allBranches ? 'all branches' : branch.name}
           </p>
         </div>
         <Button onClick={fetchMovements} variant="outline">

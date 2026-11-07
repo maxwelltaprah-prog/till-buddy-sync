@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { PaginationBar, usePagination } from '@/components/PaginationBar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranchScope } from '@/hooks/useBranchScope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,6 +77,7 @@ import type { Product, Category, Supplier, UnitOfMeasure, BulkPricingTier } from
 export default function Products() {
   const { formatPrice } = useCurrency();
   const { hasRole } = useAuth();
+  const { branchId: scopeBranchId, branchName: scopeBranchName } = useBranchScope();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -111,18 +113,21 @@ export default function Products() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [scopeBranchId]);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
       setLoadError(false);
-      const [productsRes, categoriesRes, suppliersRes] = await Promise.all([
+      const [productsRes, stockRes, categoriesRes, suppliersRes] = await Promise.all([
         supabase
           .from('products')
           .select('*, category:categories(*), supplier:suppliers(*), bulk_pricing_tiers(*)')
           .is('removed_at', null)
           .order('name'),
+        scopeBranchId
+          ? supabase.from('branch_inventory').select('product_id').eq('branch_id', scopeBranchId).gt('quantity', 0)
+          : Promise.resolve({ data: null, error: null }),
         supabase.from('categories').select('*').eq('is_active', true).order('name'),
         supabase.from('suppliers').select('*').eq('is_active', true).order('name'),
       ]);
@@ -131,7 +136,9 @@ export default function Products() {
       if (categoriesRes.error) throw categoriesRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
 
-      setProducts(productsRes.data as Product[]);
+      if (stockRes.error) throw stockRes.error;
+      const stocked = stockRes.data ? new Set((stockRes.data as { product_id: string }[]).map(r => r.product_id)) : null;
+      setProducts((productsRes.data as Product[]).filter(p => !stocked || stocked.has(p.id)));
       setCategories(categoriesRes.data as Category[]);
       setSuppliers(suppliersRes.data as Supplier[]);
     } catch (error) {

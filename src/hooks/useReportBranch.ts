@@ -3,11 +3,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { ALL_REPORT_BRANCHES, resolveReportBranch } from '@/lib/reportBranch';
 import { toast } from 'sonner';
+import { useBranchScope } from '@/hooks/useBranchScope';
 
 export function useReportBranch() {
   const { branch, hasRole } = useAuth();
   const isAdmin = hasRole('admin');
-  const [selectedBranch, setSelectedBranch] = useState(ALL_REPORT_BRANCHES);
+  const { allBranches } = useBranchScope();
+  const headerScope = allBranches ? ALL_REPORT_BRANCHES : branch?.id ?? ALL_REPORT_BRANCHES;
+  const [selectedBranch, setSelectedBranch] = useState(headerScope);
+  useEffect(() => { setSelectedBranch(headerScope); }, [headerScope]);
   const [branches, setBranches] = useState<{ id: string; name: string; code: string }[]>([]);
 
   useEffect(() => {
