@@ -97,7 +97,18 @@ export default function InventoryManagement() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setInventory(data as BranchInventory[]);
+      let rows = (data as BranchInventory[]).filter(r => !(r.product as { removed_at?: string | null } | null)?.removed_at);
+      if (!allBranches) {
+        // Only products received/transferred into this branch: stock on hand, or any stock history here.
+        const { data: moved } = await supabase
+          .from('stock_movements')
+          .select('product_id')
+          .eq('branch_id', branch!.id)
+          .limit(10000);
+        const touched = new Set((moved || []).map(m => m.product_id));
+        rows = rows.filter(r => Number(r.quantity || 0) > 0 || touched.has(r.product_id));
+      }
+      setInventory(rows);
     } catch (error) {
       console.error('Error fetching inventory:', error);
       setLoadError(true);
